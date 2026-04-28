@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interpretation: y′ = x² + y²</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;1,8..60,300;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --bg: #0d0f14;
+  --surface: #13161e;
+  --card: #181c26;
+  --border: #252a38;
+  --text: #e8e4dc;
+  --muted: #7a8099;
+  --accent: #e8855a;
+  --blue: #5b8dee;
+  --green: #4ec994;
+  --purple: #b07fe8;
+  --yellow: #f0c84a;
+  --red: #e85a6a;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Source Serif 4', serif;
+  font-weight: 300;
+  line-height: 1.75;
+  font-size: 17px;
+}
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 60px 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 40%, #1a2040 0%, #0d0f14 70%);
+}
+
+/* animated slope lines in background */
+.hero-lines {
+  position: absolute; inset: 0;
+  opacity: 0.08;
+  overflow: hidden;
+}
+
+.hero-lines canvas { width: 100%; height: 100%; }
+
+.hero-content { position: relative; z-index: 1; max-width: 720px; }
+
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2.4rem, 6vw, 4rem);
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 24px;
+  color: #fff;
+}
+
+.hero h1 em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.hero-lead {
+  font-size: 1.1rem;
+  color: #b0b8cc;
+  max-width: 560px;
+  margin: 0 auto 40px;
+}
+
+.scroll-hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: bounce 2s infinite;
+}
+
+.scroll-hint::after {
+  content: '';
+  width: 1px;
+  height: 36px;
+  background: linear-gradient(to bottom, var(--muted), transparent);
+}
+
+@keyframes bounce {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+
+/* ── SECTIONS ── */
+.section {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 80px 24px;
+}
+
+.section-number {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.section h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.7rem, 3.5vw, 2.4rem);
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+  margin-bottom: 20px;
+}
+
+.section h2 em { font-style: italic; color: var(--accent); }
+
+.section p {
+  color: #c0c8d8;
+  margin-bottom: 20px;
+  font-size: 1rem;
+}
+
+.section p strong { color: var(--text); font-weight: 400; }
+
+.divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--border), transparent);
+  margin: 0;
+}
+
+/* ── VISUAL CARDS ── */
+.visual-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 36px 0;
+}
+
+.vcard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 28px 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.vcard::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+
+.vcard.orange::before { background: var(--accent); }
+.vcard.blue::before { background: var(--blue); }
+.vcard.green::before { background: var(--green); }
+.vcard.purple::before { background: var(--purple); }
+.vcard.red::before { background: var(--red); }
+.vcard.yellow::before { background: var(--yellow); }
+
+.vcard-icon {
+  font-size: 2rem;
+  margin-bottom: 14px;
+  display: block;
+}
+
+.vcard h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  color: #fff;
+  margin-bottom: 10px;
+  font-weight: 400;
+}
+
+.vcard p {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.vcard .tag {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  padding: 3px 8px;
+  border-radius: 2px;
+  margin-bottom: 10px;
+}
+
+.tag.orange { background: rgba(232,133,90,0.15); color: var(--accent); }
+.tag.blue { background: rgba(91,141,238,0.15); color: var(--blue); }
+.tag.green { background: rgba(78,201,148,0.15); color: var(--green); }
+.tag.purple { background: rgba(176,127,232,0.15); color: var(--purple); }
+.tag.red { background: rgba(232,90,106,0.15); color: var(--red); }
+.tag.yellow { background: rgba(240,200,74,0.15); color: var(--yellow); }
+
+/* ── INTERACTIVE CANVAS ── */
+.canvas-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 24px;
+  margin: 36px 0;
+}
+
+.canvas-wrap h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.15rem;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.canvas-wrap p {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+canvas.demo {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+
+/* ── SLOPE DEMO ── */
+.slope-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.slope-cell {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 16px 12px;
+  text-align: center;
+}
+
+.slope-cell canvas { display: block; margin: 0 auto 8px; }
+
+.slope-cell .coord {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--accent);
+}
+
+.slope-cell .val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ── ANALOGY BOX ── */
+.analogy {
+  background: linear-gradient(135deg, #1a2035 0%, #0f1520 100%);
+  border: 1px solid #2a3050;
+  border-left: 3px solid var(--accent);
+  border-radius: 2px;
+  padding: 28px 32px;
+  margin: 36px 0;
+}
+
+.analogy-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.15em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.analogy p {
+  color: #c0c8d8;
+  font-size: 0.97rem;
+  margin: 0;
+}
+
+/* ── TIMELINE ── */
+.timeline {
+  position: relative;
+  padding-left: 36px;
+  margin: 36px 0;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 8px; top: 8px; bottom: 8px;
+  width: 1px;
+  background: linear-gradient(to bottom, var(--accent), var(--blue), var(--red));
+}
+
+.tl-item {
+  position: relative;
+  margin-bottom: 32px;
+}
+
+.tl-item::before {
+  content: '';
+  position: absolute;
+  left: -32px;
+  top: 6px;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--bg);
+}
+
+.tl-item:nth-child(2)::before { border-color: var(--blue); }
+.tl-item:nth-child(3)::before { border-color: var(--green); }
+.tl-item:nth-child(4)::before { border-color: var(--red); }
+
+.tl-item h4 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem;
+  color: #fff;
+  margin-bottom: 6px;
+  font-weight: 400;
+}
+
+.tl-item p {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ── FORMULA DISPLAY ── */
+.formula-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 20px 28px;
+  margin: 20px 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.05rem;
+  color: var(--text);
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+
+.formula-box .hl { color: var(--accent); }
+.formula-box .hl2 { color: var(--blue); }
+
+/* ── BLOW-UP DEMO ── */
+#blowupCanvas {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  border: 1px solid var(--border);
+}
+
+.controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.ctrl-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.ctrl-label span { color: var(--accent); }
+
+input[type=range] { accent-color: var(--accent); cursor: pointer; }
+
+.btn {
+  font-family: 'Source Serif 4', serif;
+  font-size: 0.85rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 6px 18px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: opacity 0.15s;
+}
+
+.btn:hover { opacity: 0.8; }
+
+.btn.secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+/* ── SUMMARY GRID ── */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 36px 0;
+}
+
+.sg-cell {
+  background: var(--card);
+  padding: 24px 20px;
+}
+
+.sg-cell .num {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.sg-cell .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.sg-cell .desc {
+  font-size: 0.83rem;
+  color: #7a8099;
+  margin-top: 6px;
+}
+
+/* ── FOOTER ── */
+footer {
+  text-align: center;
+  padding: 48px 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  border-top: 1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════ HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <canvas id="heroBg" class="hero-lines" width="800" height="600"></canvas>
+  <div class="hero-content">
+    <div class="eyebrow">Differentialgleichung · Intuitive Interpretation</div>
+    <h1>Was bedeutet<br><em>y′ = x² + y²</em><br>wirklich?</h1>
+    <p class="hero-lead">Eine Gleichung, die sagt: <em>Wie steil eine Kurve an einem Punkt ist, hängt von ihrer Position ab.</em> Hier verstehst du Schritt für Schritt, was das bedeutet.</p>
+    <div class="scroll-hint">Scroll nach unten</div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════════════ SECTION 1: Was ist das überhaupt? -->
+<section class="section">
+  <div class="section-number">01 — Die Grundidee</div>
+  <h2>Die DGL ist eine <em>Vorschrift</em> für Steigungen</h2>
+
+  <p>Normalerweise kennt man eine Funktion y(x) und kann ihre Ableitung y′(x) berechnen. Hier ist es umgekehrt: <strong>Man kennt nur die Ableitung</strong> — nämlich y′(x) = x² + y² — und sucht die dazugehörige Funktion.</p>
+
+  <p>Stell dir vor, du bist ein Wanderer auf einem unbekannten Gelände. An jedem Punkt (x, y) sagt dir ein Kompass: <em>„In diese Richtung musst du gehen."</em> Die DGL ist dieser Kompass. Die Lösungskurven sind deine möglichen Wanderwege.</p>
+
+  <div class="analogy">
+    <div class="analogy-label">Intuition</div>
+    <p>Die Gleichung y′ = x² + y² bedeutet: <strong>An der Stelle (x, y) hat deine Kurve die Steigung x² + y².</strong> Je weiter du vom Ursprung entfernt bist, desto steiler wird es — egal in welche Richtung.</p>
+  </div>
+
+  <div class="visual-row">
+    <div class="vcard orange">
+      <div class="tag orange">Frage</div>
+      <h3>Was suchen wir?</h3>
+      <p>Eine Funktion y(x), die an <em>jedem</em> Punkt die Steigung x² + y² hat. Es gibt unendlich viele — jede mit einem anderen Startpunkt.</p>
+    </div>
+    <div class="vcard blue">
+      <div class="tag blue">Werkzeug</div>
+      <h3>Das Richtungsfeld</h3>
+      <p>An einem Gitter von Punkten zeichnen wir kleine Pfeile, die die vorgeschriebene Steigung anzeigen. Lösungskurven folgen immer diesen Pfeilen.</p>
+    </div>
+    <div class="vcard green">
+      <div class="tag green">Ergebnis</div>
+      <h3>Integralkurven</h3>
+      <p>Jede Kurve, die überall tangential zu den Pfeilen liegt, ist eine Lösung. Durch jeden Punkt geht genau eine Lösungskurve.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════════════ SECTION 2: Die Steigung -->
+<section class="section">
+  <div class="section-number">02 — Die Steigungsfunktion</div>
+  <h2>Warum ist <em>x² + y²</em> so besonders?</h2>
+
+  <p>x² + y² ist der <strong>quadratische Abstand vom Ursprung</strong>. Das ist der Pythagoras: In einem rechtwinkligen Dreieck ist a² + b² = c². Hier ist x² + y² = (Entfernung vom Ursprung)².</p>
+
+  <div class="formula-box">
+    y′(x, y) = <span class="hl">x²</span> + <span class="hl2">y²</span> = <span style="color:var(--green)">r²</span>&nbsp;&nbsp;·&nbsp;&nbsp;wobei r = Abstand vom Ursprung
+  </div>
+
+  <p>Das hat eine schöne geometrische Bedeutung: <strong>Die Steigung hängt nur davon ab, wie weit man vom Ursprung entfernt ist</strong> — nicht von der Richtung. Alle Punkte auf einem Kreis um den Ursprung haben dieselbe vorgeschriebene Steigung.</p>
+
+  <!-- Live slope cells -->
+  <div style="margin:28px 0;">
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:12px;">Konkrete Beispiele — Steigung an verschiedenen Punkten:</p>
+    <div class="slope-grid" id="slopeGrid"></div>
+  </div>
+
+  <div class="analogy">
+    <div class="analogy-label">Schlüsselbeobachtung</div>
+    <p>Im <strong>Ursprung (0,0)</strong> ist die Steigung 0 — die Kurve ist dort waagerecht. Schon bei (1,0) ist die Steigung 1, bei (1,1) ist sie 2, bei (2,2) bereits 8. <strong>Die Steigung explodiert schnell, sobald man sich vom Ursprung entfernt.</strong></p>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════════════ SECTION 3: Isoklinen -->
+<section class="section">
+  <div class="section-number">03 — Isoklinen</div>
+  <h2><em>Kreise</em> gleicher Steigung</h2>
+
+  <p>Eine <strong>Isokline</strong> (griech.: „gleiche Neigung") ist die Menge aller Punkte mit derselben Steigung. Für y′ = c gilt:</p>
+
+  <div class="formula-box">
+    x² + y² = <span class="hl">c</span> &nbsp;→ &nbsp;Kreis mit Radius <span class="hl2">√c</span> um den Ursprung
+  </div>
+
+  <div class="visual-row">
+    <div class="vcard green">
+      <div class="tag green">Isokline y′ = 0</div>
+      <h3>Der Ursprung</h3>
+      <p>Nur der Punkt (0,0). Dort ist die Steigung null — Lösungskurven haben genau dort eine waagrechte Tangente.</p>
+    </div>
+    <div class="vcard blue">
+      <div class="tag blue">Isokline y′ = 1</div>
+      <h3>Einheitskreis</h3>
+      <p>Der Kreis mit Radius 1. Auf diesem Kreis haben alle Lösungskurven die Steigung 1 (45°).</p>
+    </div>
+    <div class="vcard purple">
+      <div class="tag purple">Isokline y′ = 4</div>
+      <h3>Kreis mit r = 2</h3>
+      <p>Auf dem Kreis mit Radius 2 haben alle Kurven die Steigung 4 — schon ziemlich steil!</p>
+    </div>
+  </div>
+
+  <p>Das ist der Grund, warum das Richtungsfeld eine kreisförmige Symmetrie hat: <strong>Pfeile gleicher Länge liegen auf konzentrischen Kreisen</strong> um den Ursprung.</p>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════════════ SECTION 4: Verhalten der Lösungen -->
+<section class="section">
+  <div class="section-number">04 — Verhalten der Lösungen</div>
+  <h2>Was passiert entlang einer <em>Lösungskurve</em>?</h2>
+
+  <p>Nehmen wir einen Startpunkt und folgen der Kurve nach rechts. Was beobachten wir?</p>
+
+  <div class="timeline">
+    <div class="tl-item">
+      <h4>Nahe dem Ursprung — flaches Wachstum</h4>
+      <p>Startet man nahe (0,0), ist x² + y² klein. Die Steigung ist fast null, die Kurve verläuft fast waagerecht. Es geht nur langsam bergauf.</p>
+    </div>
+    <div class="tl-item">
+      <h4>Entfernung wächst — Steigung nimmt zu</h4>
+      <p>Je weiter die Kurve vom Ursprung wandert, desto größer wird x² + y², desto steiler wird die Kurve. Das ist eine <em>Selbstverstärkung</em>: Steigung → höheres y → noch mehr Steigung.</p>
+    </div>
+    <div class="tl-item">
+      <h4>Rückkopplung — Exponentielles Verhalten</h4>
+      <p>Der Term y² in der Gleichung bedeutet: Je größer y wird, desto schneller wächst y′. Das ist ähnlich wie beim exponentiellen Wachstum — nur sogar noch schneller.</p>
+    </div>
+    <div class="tl-item">
+      <h4>Blow-up — Endliche Explosionszeit ⚠️</h4>
+      <p>Für viele Startpunkte geht die Lösung in <em>endlicher</em> Zeit gegen Unendlich. Das nennt man „Blow-up". Die Lösung existiert nur auf einem beschränkten Intervall!</p>
+    </div>
+  </div>
+
+  <div class="analogy">
+    <div class="analogy-label">Alltagsanalogie — Blow-up</div>
+    <p>Stell dir vor, du leihst Geld und musst Zinsen zahlen — aber die Zinsen wachsen proportional zu deiner aktuellen Schuld <em>im Quadrat</em>. Dann wächst deine Schuld so schnell, dass sie schon nach endlicher Zeit „unendlich" wird. Das ist die Intuition hinter dem Blow-up.</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════════════ SECTION 5: Blow-up Demo -->
+<section class="section">
+  <div class="section-number">05 — Interaktiv</div>
+  <h2>Sieh den <em>Blow-up</em> selbst</h2>
+  <p>Hier siehst du, wie eine Lösungskurve sich entwickelt — und wie sie explodiert. Wähle den Anfangswert y(0) = y₀.</p>
+
+  <div class="canvas-wrap">
+    <h3>Lösungskurve von y′ = x² + y²</h3>
+    <p>Die rote Kurve zeigt y(x). Der grau gestrichelte Bereich ist das Definitionsintervall — danach geht die Kurve gegen ∞.</p>
+    <canvas id="blowupCanvas" width="600" height="300"></canvas>
+    <div class="controls-row">
+      <span class="ctrl-label">y₀ = y(0) = <span id="y0val">0.5</span></span>
+      <input type="range" id="y0slider" min="-20" max="20" value="5" step="1" style="width:160px">
+      <span class="ctrl-label">→ &nbsp;<span id="blowupInfo" style="color:var(--red)"></span></span>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════════════ SECTION 6: Monotonie -->
+<section class="section">
+  <div class="section-number">06 — Monotonie</div>
+  <h2>Alle Lösungen sind <em>stets wachsend</em></h2>
+
+  <p>Da x² + y² ≥ 0 für alle (x, y) gilt, ist die Steigung <strong>niemals negativ</strong>. Das hat eine wichtige Konsequenz:</p>
+
+  <div class="visual-row">
+    <div class="vcard orange">
+      <div class="tag orange">Eigenschaft</div>
+      <h3>Keine Täler, keine Hügel</h3>
+      <p>Eine Lösungskurve kann <em>niemals</em> ein lokales Maximum oder Minimum haben — sie ist überall monoton wachsend oder im Ursprung kurz waagerecht.</p>
+    </div>
+    <div class="vcard blue">
+      <div class="tag blue">Eigenschaft</div>
+      <h3>Kein Rückwärtslaufen</h3>
+      <p>Folgt man der Kurve nach rechts, geht y immer aufwärts oder waagerecht — niemals abwärts. Die Kurven sind „unumkehrbar aufwärtsgerichtet".</p>
+    </div>
+    <div class="vcard yellow">
+      <div class="tag yellow">Spezialfall</div>
+      <h3>Steigung = 0 nur im Ursprung</h3>
+      <p>Der einzige Punkt mit Steigung 0 ist (0, 0). Das ist der einzige „ruhende" Punkt im gesamten Richtungsfeld.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════════════ SECTION 7: Zusammenfassung -->
+<section class="section">
+  <div class="section-number">07 — Zusammenfassung</div>
+  <h2>Das Wichtigste auf einen Blick</h2>
+
+  <div class="summary-grid">
+    <div class="sg-cell">
+      <div class="num">≥ 0</div>
+      <div class="label">Steigung immer</div>
+      <div class="desc">y′ = x²+y² ist nie negativ. Alle Lösungen sind monoton wachsend.</div>
+    </div>
+    <div class="sg-cell">
+      <div class="num">∞</div>
+      <div class="label">Blow-up in endlicher Zeit</div>
+      <div class="desc">Viele Lösungen existieren nur auf einem beschränkten x-Intervall.</div>
+    </div>
+    <div class="sg-cell">
+      <div class="num">○</div>
+      <div class="label">Kreisförmige Isoklinen</div>
+      <div class="desc">x²+y² = c ist ein Kreis. Gleiche Steigung = gleicher Abstand vom Ursprung.</div>
+    </div>
+    <div class="sg-cell">
+      <div class="num">1</div>
+      <div class="label">Eindeutige Lösung</div>
+      <div class="desc">Durch jeden Startpunkt geht genau eine Lösungskurve (Eindeutigkeitssatz).</div>
+    </div>
+  </div>
+
+  <div class="analogy" style="border-left-color: var(--green)">
+    <div class="analogy-label" style="color:var(--green)">Abschliessende Intuition</div>
+    <p>Denke an y′ = x² + y² wie an ein <strong>Wachstumsgesetz mit Gedächtnis</strong>: Dein aktueller Zustand (y) und deine Position (x) bestimmen zusammen, wie schnell du weiter wächst. Je größer du bereits bist und je weiter du in x-Richtung bist, desto schneller geht es aufwärts — bis es buchstäblich explodiert.</p>
+  </div>
+</section>
+
+<footer>y′(x) = x² + y² &nbsp;·&nbsp; Differentialgleichung 1. Ordnung &nbsp;·&nbsp; Graphische Lösungsanalyse</footer>
+
+<script>
+// ── Hero background: subtle direction field ──────────────────────────────────
+(function() {
+  const cv = document.getElementById('heroBg');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    const n = 22;
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
+        const x = (i / (n-1) - 0.5) * 6;
+        const y = (j / (n-1) - 0.5) * 6;
+        const s = x*x + y*y;
+        const angle = Math.atan(s);
+        const cx = i / (n-1) * W;
+        const cy = j / (n-1) * H;
+        const len = 14;
+        const dx = Math.cos(angle) * len;
+        const dy = Math.sin(angle) * len;
+        ctx.strokeStyle = `rgba(180,200,255,0.5)`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx - dx, cy - dy);
+        ctx.lineTo(cx + dx, cy + dy);
+        ctx.stroke();
+      }
+    }
+  }
+  draw();
+})();
+
+// ── Slope grid cells ─────────────────────────────────────────────────────────
+const EXAMPLES = [
+  {x:0, y:0}, {x:1, y:0}, {x:0, y:1},
+  {x:1, y:1}, {x:2, y:0}, {x:1, y:2}
+];
+
+const grid = document.getElementById('slopeGrid');
+EXAMPLES.forEach(({x, y}) => {
+  const slope = x*x + y*y;
+  const cell = document.createElement('div');
+  cell.className = 'slope-cell';
+  const cvEl = document.createElement('canvas');
+  cvEl.width = 70; cvEl.height = 70;
+  cell.appendChild(cvEl);
+  const cd = document.createElement('div');
+  cd.className = 'coord';
+  cd.textContent = `(${x}, ${y})`;
+  cell.appendChild(cd);
+  const vd = document.createElement('div');
+  vd.className = 'val';
+  vd.textContent = `y′ = ${slope}`;
+  cell.appendChild(vd);
+  grid.appendChild(cell);
+
+  // draw arrow
+  const c = cvEl.getContext('2d');
+  c.fillStyle = '#181c26';
+  c.fillRect(0,0,70,70);
+  c.strokeStyle = '#2a3050';
+  c.lineWidth = 0.5;
+  c.beginPath(); c.moveTo(35,0); c.lineTo(35,70); c.stroke();
+  c.beginPath(); c.moveTo(0,35); c.lineTo(70,35); c.stroke();
+
+  const angle = Math.atan(slope);
+  const len = 22;
+  const dx = Math.cos(angle) * len;
+  const dy = Math.sin(angle) * len;
+  const col = slope === 0 ? '#4ec994' : slope <= 2 ? '#5b8dee' : slope <= 5 ? '#e8855a' : '#e85a6a';
+  c.strokeStyle = col;
+  c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(35 - dx, 35 + dy);
+  c.lineTo(35 + dx, 35 - dy);
+  c.stroke();
+  // arrowhead
+  const ux = dx/len, uy = -dy/len;
+  const px = uy, py = ux; // perpendicular (wrong sign fixed below)
+  const hx = 35 + dx, hy = 35 - dy;
+  c.fillStyle = col;
+  c.beginPath();
+  c.moveTo(hx, hy);
+  c.lineTo(hx - ux*7 + py*3.5, hy - uy*7 - px*3.5);
+  c.lineTo(hx - ux*7 - py*3.5, hy - uy*7 + px*3.5);
+  c.closePath();
+  c.fill();
+});
+
+// ── Blow-up demo ─────────────────────────────────────────────────────────────
+const bcv = document.getElementById('blowupCanvas');
+const bctx = bcv.getContext('2d');
+const BW = bcv.width, BH = bcv.height;
+
+function f(x, y) { return x*x + y*y; }
+
+function rk4(x, y, h) {
+  const k1 = f(x, y);
+  const k2 = f(x+h/2, y+h/2*k1);
+  const k3 = f(x+h/2, y+h/2*k2);
+  const k4 = f(x+h, y+h*k3);
+  return y + h/6*(k1+2*k2+2*k3+k4);
+}
+
+function solveForward(y0, xMax, h) {
+  const pts = [{x:0, y:y0}];
+  let x = 0, y = y0;
+  for (let i = 0; i < 5000; i++) {
+    const yn = rk4(x, y, h);
+    x += h; y = yn;
+    if (Math.abs(y) > 100 || x > xMax) break;
+    pts.push({x, y});
+  }
+  return pts;
+}
+
+function drawBlowup(y0) {
+  const h = 0.005;
+  const pts = solveForward(y0, 5, h);
+  const ptsBack = solveForward(y0, -5, -h).reverse();
+  const allPts = [...ptsBack, ...pts.slice(1)];
+
+  // find x range
+  const xs = allPts.map(p=>p.x);
+  const ys = allPts.map(p=>p.y);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const yMin2 = Math.min(...ys, -1), yMax2 = Math.max(...ys, 1);
+  const yRange = yMax2 - yMin2;
+
+  // domain
+  const xLo = -3, xHi = 3;
+  const yLo = yMin2 - yRange*0.05, yHi = yMax2 + yRange*0.1;
+
+  function cx(x) { return (x - xLo) / (xHi - xLo) * BW; }
+  function cy(y) { return BH - (y - yLo) / (yHi - yLo) * BH; }
+
+  bctx.fillStyle = '#0d0f14';
+  bctx.fillRect(0,0,BW,BH);
+
+  // grid
+  bctx.strokeStyle = '#1e2230';
+  bctx.lineWidth = 1;
+  for (let xi = Math.ceil(xLo); xi <= xHi; xi++) {
+    bctx.beginPath(); bctx.moveTo(cx(xi),0); bctx.lineTo(cx(xi),BH); bctx.stroke();
+  }
+
+  // axes
+  bctx.strokeStyle = '#2a3050';
+  bctx.lineWidth = 1.5;
+  bctx.beginPath(); bctx.moveTo(cx(xLo), cy(0)); bctx.lineTo(cx(xHi), cy(0)); bctx.stroke();
+  bctx.beginPath(); bctx.moveTo(cx(0), 0); bctx.lineTo(cx(0), BH); bctx.stroke();
+
+  // blow-up region
+  const lastX = allPts[allPts.length-1].x;
+  if (lastX < xHi - 0.1) {
+    bctx.fillStyle = 'rgba(232,90,106,0.07)';
+    bctx.fillRect(cx(lastX), 0, cx(xHi)-cx(lastX), BH);
+    bctx.strokeStyle = 'rgba(232,90,106,0.4)';
+    bctx.lineWidth = 1;
+    bctx.setLineDash([4,4]);
+    bctx.beginPath(); bctx.moveTo(cx(lastX),0); bctx.lineTo(cx(lastX),BH); bctx.stroke();
+    bctx.setLineDash([]);
+    bctx.fillStyle = 'rgba(232,90,106,0.7)';
+    bctx.font = '11px JetBrains Mono, monospace';
+    bctx.textAlign = 'left';
+    bctx.fillText('Blow-up →∞', cx(lastX)+6, 20);
+    document.getElementById('blowupInfo').textContent =
+      `Blow-up bei x ≈ ${lastX.toFixed(3)}`;
+  } else {
+    document.getElementById('blowupInfo').textContent = 'Kein Blow-up im sichtbaren Bereich';
+  }
+
+  // curve
+  bctx.strokeStyle = '#e8855a';
+  bctx.lineWidth = 2.5;
+  bctx.shadowColor = 'rgba(232,133,90,0.4)';
+  bctx.shadowBlur = 6;
+  bctx.beginPath();
+  let started = false;
+  for (const {x, y} of allPts) {
+    const px = cx(x), py = cy(y);
+    if (py < -10 || py > BH+10) { started = false; continue; }
+    if (!started) { bctx.moveTo(px, py); started = true; }
+    else bctx.lineTo(px, py);
+  }
+  bctx.stroke();
+  bctx.shadowBlur = 0;
+
+  // start dot
+  bctx.beginPath();
+  bctx.arc(cx(0), cy(y0), 5, 0, 2*Math.PI);
+  bctx.fillStyle = '#5b8dee';
+  bctx.fill();
+
+  // axis labels
+  bctx.fillStyle = '#7a8099';
+  bctx.font = '11px JetBrains Mono, monospace';
+  bctx.textAlign = 'center';
+  for (let xi = Math.ceil(xLo); xi <= xHi; xi++) {
+    if (xi===0) continue;
+    bctx.fillText(xi, cx(xi), cy(0)+16);
+  }
+  bctx.textAlign = 'left';
+  bctx.fillText('x', cx(xHi)-12, cy(0)+16);
+
+  // y0 label
+  bctx.fillStyle = '#5b8dee';
+  bctx.font = '11px JetBrains Mono, monospace';
+  bctx.textAlign = 'right';
+  bctx.fillText(`y₀=${y0.toFixed(1)}`, cx(0)-8, cy(y0)+4);
+}
+
+const slider = document.getElementById('y0slider');
+const y0valEl = document.getElementById('y0val');
+
+function updateBlowup() {
+  const y0 = slider.value / 10;
+  y0valEl.textContent = y0.toFixed(1);
+  drawBlowup(y0);
+}
+
+slider.addEventListener('input', updateBlowup);
+updateBlowup();
+</script>
+</body>
+</html>
