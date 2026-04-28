@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Richtungsfeld: y' = x² + y²</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --ink: #1a1a2e;
+    --paper: #f5f0e8;
+    --accent: #c0392b;
+    --grid: #ccc5b5;
+    --arrow: #2c3e6b;
+    --curve: #c0392b;
+    --muted: #8a8070;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'EB Garamond', serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 16px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 22px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+  }
+
+  h1 em { font-style: italic; color: var(--accent); }
+
+  .subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  .container {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  canvas {
+    border: 1.5px solid var(--grid);
+    background: #fdfaf4;
+    box-shadow: 4px 4px 0 #d4cfc4, 8px 8px 0 #c8c3b8;
+    cursor: crosshair;
+  }
+
+  .panel {
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .card {
+    background: #fdfaf4;
+    border: 1px solid var(--grid);
+    padding: 14px 16px;
+    box-shadow: 2px 2px 0 #d4cfc4;
+  }
+
+  .card h3 {
+    font-size: 0.82rem;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--grid);
+    padding-bottom: 6px;
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.88rem;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  label span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+    float: right;
+  }
+
+  button {
+    font-family: 'EB Garamond', serif;
+    font-size: 0.9rem;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 7px 14px;
+    cursor: pointer;
+    width: 100%;
+    letter-spacing: 0.03em;
+    transition: background 0.15s;
+  }
+
+  button:hover { background: var(--accent); }
+
+  .info-text {
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: #444;
+  }
+
+  .legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.84rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .swatch {
+    width: 28px;
+    height: 3px;
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+
+  .coord-display {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    min-height: 1.2em;
+    margin-top: 4px;
+  }
+
+  .hint {
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-style: italic;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Richtungsfeld &nbsp;·&nbsp; <em>y′(x) = x² + y²</em></h1>
+  <div class="subtitle">Differentialgleichung 1. Ordnung &nbsp;|&nbsp; graphische Lösungsbeschreibung</div>
+</header>
+
+<div class="container">
+  <canvas id="cv" width="560" height="560"></canvas>
+
+  <div class="panel">
+
+    <div class="card">
+      <h3>Einstellungen</h3>
+
+      <label>
+        Gitterdichte &nbsp;<span class="val" id="densVal">18</span>
+        <input type="range" id="dens" min="8" max="30" value="18">
+      </label>
+
+      <label>
+        Pfeillänge &nbsp;<span class="val" id="lenVal">0.55</span>
+        <input type="range" id="len" min="20" max="90" value="55">
+      </label>
+
+      <label>
+        Linienstärke &nbsp;<span class="val" id="lwVal">1.4</span>
+        <input type="range" id="lw" min="5" max="25" value="14">
+      </label>
+
+      <label>
+        Farbkodierung
+        <input type="range" id="coloring" min="0" max="1" step="1" value="1">
+        <span id="coloringLabel" style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent)">Steigung</span>
+      </label>
+    </div>
+
+    <div class="card">
+      <h3>Integralkurven</h3>
+      <p class="hint">Klick ins Diagramm → Lösungskurve durch diesen Punkt</p>
+      <div class="coord-display" id="coordDisplay">—</div>
+      <button id="clearBtn" style="margin-top:8px">Kurven löschen</button>
+    </div>
+
+    <div class="card">
+      <h3>Legende</h3>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="swatch" style="background:#2c3e6b;height:2px"></div>
+          <span>Richtungspfeile</span>
+        </div>
+        <div class="legend-item">
+          <div class="swatch" style="background:#c0392b"></div>
+          <span>Integralkurven</span>
+        </div>
+        <div class="legend-item">
+          <div class="swatch" style="background:#27ae60"></div>
+          <span>Isokline y′ = 0</span>
+        </div>
+        <div class="legend-item">
+          <div class="swatch" style="background:#8e44ad;height:1px;border-top:1px dashed #8e44ad"></div>
+          <span>Isokline y′ = 1</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Analyse</h3>
+      <div class="info-text">
+        <strong>f(x,y) = x² + y²</strong> ≥ 0 für alle (x,y).<br><br>
+        Die Steigung ist stets <em>nicht-negativ</em> — alle Lösungen sind monoton wachsend.<br><br>
+        Isokline <strong>y′ = c</strong>: Kreise x²+y² = c um den Ursprung.<br><br>
+        Lösungen wachsen für große |y| sehr schnell — manche haben <em>endliche Blow-up-Zeit</em>.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+
+// coordinate system: x in [-3, 3], y in [-3, 3]
+const xMin = -3, xMax = 3, yMin = -3, yMax = 3;
+
+function toCanvas(x, y) {
+  return [
+    (x - xMin) / (xMax - xMin) * W,
+    H - (y - yMin) / (yMax - yMin) * H
+  ];
+}
+
+function toWorld(cx, cy) {
+  return [
+    cx / W * (xMax - xMin) + xMin,
+    (H - cy) / H * (yMax - yMin) + yMin
+  ];
+}
+
+function f(x, y) { return x*x + y*y; }
+
+let N = 18, arrowLen = 0.55, lineW = 1.4, colorMode = 1;
+let curves = [];
+
+function slopeColor(slope) {
+  if (!colorMode) return '#2c3e6b';
+  // map slope 0..~8 to hue: blue → orange → red
+  const t = Math.min(slope / 6, 1);
+  const hue = 220 - t * 180;
+  const sat = 60 + t * 30;
+  const lit = 35 + t * 15;
+  return `hsl(${hue},${sat}%,${lit}%)`;
+}
+
+function drawGrid() {
+  ctx.strokeStyle = '#e2ddd4';
+  ctx.lineWidth = 0.8;
+  // grid lines every 1 unit
+  for (let x = xMin; x <= xMax; x++) {
+    const [cx] = toCanvas(x, 0);
+    ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
+  }
+  for (let y = yMin; y <= yMax; y++) {
+    const [,cy] = toCanvas(0, y);
+    ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+  }
+  // axes
+  ctx.strokeStyle = '#aaa49a';
+  ctx.lineWidth = 1.2;
+  const [ax] = toCanvas(0, 0); const [,ay] = toCanvas(0, 0);
+  ctx.beginPath(); ctx.moveTo(ax, 0); ctx.lineTo(ax, H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, ay); ctx.lineTo(W, ay); ctx.stroke();
+
+  // axis labels
+  ctx.fillStyle = '#888';
+  ctx.font = '11px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  for (let x = xMin+1; x < xMax; x++) {
+    if (x === 0) continue;
+    const [cx, cy] = toCanvas(x, 0);
+    ctx.fillText(x, cx, cy + 14);
+  }
+  ctx.textAlign = 'right';
+  for (let y = yMin+1; y < yMax; y++) {
+    if (y === 0) continue;
+    const [cx, cy] = toCanvas(0, y);
+    ctx.fillText(y, cx - 4, cy + 4);
+  }
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#555';
+  ctx.font = 'italic 13px EB Garamond, serif';
+  const [ex] = toCanvas(xMax - 0.05, 0); const [,ey] = toCanvas(0, 0);
+  ctx.fillText('x', ex - 6, ey + 16);
+  const [oax, oay] = toCanvas(0, yMax - 0.05);
+  ctx.fillText('y', oax + 5, oay + 5);
+}
+
+function drawIsoclines() {
+  // y' = 0: unit circle
+  ctx.strokeStyle = '#27ae60';
+  ctx.lineWidth = 1.3;
+  ctx.setLineDash([]);
+  const [ox, oy] = toCanvas(0, 0);
+  const rx = W / (xMax - xMin);
+  ctx.beginPath();
+  ctx.arc(ox, oy, rx, 0, 2*Math.PI);
+  ctx.stroke();
+
+  // y' = 1: radius sqrt(1) — already covered, draw y' = 2
+  ctx.strokeStyle = '#8e44ad';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  const r2 = Math.sqrt(2) * rx;
+  ctx.beginPath(); ctx.arc(ox, oy, r2, 0, 2*Math.PI); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawField() {
+  const step = (xMax - xMin) / N;
+  const halfLen = arrowLen * step * 0.5;
+
+  for (let i = 0; i <= N; i++) {
+    for (let j = 0; j <= N; j++) {
+      const x = xMin + i * step;
+      const y = yMin + j * step;
+      const slope = f(x, y);
+      const angle = Math.atan(slope);
+
+      const dx = Math.cos(angle) * halfLen;
+      const dy = Math.sin(angle) * halfLen;
+
+      const [cx, cy] = toCanvas(x, y);
+      const [x1, y1] = toCanvas(x - dx, y - dy);
+      const [x2, y2] = toCanvas(x + dx, y + dy);
+
+      ctx.strokeStyle = slopeColor(slope);
+      ctx.lineWidth = lineW;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+
+      // arrowhead
+      const headLen = 4.5;
+      const adx = x2 - x1, ady = y2 - y1;
+      const len = Math.sqrt(adx*adx + ady*ady) || 1;
+      const ux = adx/len, uy = ady/len;
+      const px = -uy, py = ux;
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - ux*headLen + px*headLen*0.35, y2 - uy*headLen + py*headLen*0.35);
+      ctx.lineTo(x2 - ux*headLen - px*headLen*0.35, y2 - uy*headLen - py*headLen*0.35);
+      ctx.closePath();
+      ctx.fillStyle = slopeColor(slope);
+      ctx.fill();
+    }
+  }
+}
+
+function rk4Step(x, y, h) {
+  const k1 = f(x, y);
+  const k2 = f(x + h/2, y + h/2 * k1);
+  const k3 = f(x + h/2, y + h/2 * k2);
+  const k4 = f(x + h, y + h * k3);
+  return y + h/6 * (k1 + 2*k2 + 2*k3 + k4);
+}
+
+function drawCurve(x0, y0) {
+  const h = 0.015;
+  const points = [[x0, y0]];
+
+  // forward
+  let x = x0, y = y0;
+  for (let i = 0; i < 600; i++) {
+    const yn = rk4Step(x, y, h);
+    x += h; y = yn;
+    if (x > xMax + 0.1 || y > yMax + 0.5 || y < yMin - 0.5 || Math.abs(y) > 20) break;
+    points.push([x, y]);
+  }
+
+  // backward
+  x = x0; y = y0;
+  const back = [[x0, y0]];
+  for (let i = 0; i < 600; i++) {
+    const yn = rk4Step(x, y, -h);
+    x -= h; y = yn;
+    if (x < xMin - 0.1 || y > yMax + 0.5 || y < yMin - 0.5 || Math.abs(y) > 20) break;
+    back.push([x, y]);
+  }
+  back.reverse();
+  const full = [...back.slice(0, -1), ...points];
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, W, H);
+  ctx.clip();
+
+  ctx.strokeStyle = '#c0392b';
+  ctx.lineWidth = 2.2;
+  ctx.shadowColor = 'rgba(192,57,43,0.25)';
+  ctx.shadowBlur = 4;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  ctx.beginPath();
+  let started = false;
+  for (const [px, py] of full) {
+    const [cx, cy] = toCanvas(px, py);
+    if (!started) { ctx.moveTo(cx, cy); started = true; }
+    else ctx.lineTo(cx, cy);
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  // dot at initial point
+  const [ix, iy] = toCanvas(x0, y0);
+  ctx.beginPath();
+  ctx.arc(ix, iy, 4, 0, 2*Math.PI);
+  ctx.fillStyle = '#c0392b';
+  ctx.fill();
+  ctx.strokeStyle = '#fdfaf4';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function redraw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#fdfaf4';
+  ctx.fillRect(0, 0, W, H);
+  drawGrid();
+  drawIsoclines();
+  drawField();
+  for (const [cx, cy] of curves) drawCurve(cx, cy);
+}
+
+// Controls
+document.getElementById('dens').addEventListener('input', e => {
+  N = +e.target.value;
+  document.getElementById('densVal').textContent = N;
+  redraw();
+});
+document.getElementById('len').addEventListener('input', e => {
+  arrowLen = e.target.value / 100;
+  document.getElementById('lenVal').textContent = arrowLen.toFixed(2);
+  redraw();
+});
+document.getElementById('lw').addEventListener('input', e => {
+  lineW = e.target.value / 10;
+  document.getElementById('lwVal').textContent = lineW.toFixed(1);
+  redraw();
+});
+document.getElementById('coloring').addEventListener('input', e => {
+  colorMode = +e.target.value;
+  document.getElementById('coloringLabel').textContent = colorMode ? 'Steigung' : 'Einheitlich';
+  redraw();
+});
+document.getElementById('clearBtn').addEventListener('click', () => {
+  curves = [];
+  redraw();
+});
+
+cv.addEventListener('mousemove', e => {
+  const r = cv.getBoundingClientRect();
+  const [wx, wy] = toWorld(e.clientX - r.left, e.clientY - r.top);
+  const slope = f(wx, wy);
+  document.getElementById('coordDisplay').textContent =
+    `(${wx.toFixed(2)}, ${wy.toFixed(2)})  y′ = ${slope.toFixed(3)}`;
+});
+
+cv.addEventListener('click', e => {
+  const r = cv.getBoundingClientRect();
+  const [wx, wy] = toWorld(e.clientX - r.left, e.clientY - r.top);
+  curves.push([wx, wy]);
+  redraw();
+});
+
+redraw();
+</script>
+</body>
+</html>
