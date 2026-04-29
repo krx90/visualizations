@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-Profil Schubmittelpunkt</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
+
+  :root {
+    --bg: #0d0d0f;
+    --panel: #16161a;
+    --border: #2a2a32;
+    --accent: #e8c547;
+    --accent2: #5b8dee;
+    --accent3: #e05c5c;
+    --text: #e8e8f0;
+    --muted: #7a7a90;
+    --steg: #3a5a8a;
+    --gurt: #2a4a7a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px;
+    gap: 24px;
+  }
+
+  h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    margin-top: 4px;
+  }
+
+  .layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 960px;
+  }
+
+  .canvas-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    position: relative;
+  }
+
+  canvas {
+    display: block;
+  }
+
+  .controls {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    min-width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .ctrl-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  .slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.82rem;
+  }
+
+  .slider-name { color: var(--text); }
+  .slider-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+    min-width: 48px;
+    text-align: right;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+  .info-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.82rem;
+  }
+
+  .info-label { color: var(--muted); }
+  .info-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+  }
+
+  .dot-sm { color: var(--accent); }
+  .dot-s  { color: var(--accent2); }
+  .dot-dist { color: var(--accent3); }
+
+  .legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .formula {
+    background: var(--bg);
+    border-left: 3px solid var(--accent);
+    padding: 10px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .formula span { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div style="text-align:center">
+  <h1>C-Profil — Schubmittelpunkt</h1>
+  <div class="subtitle">Interaktive Visualisierung · Öffnung nach rechts</div>
+</div>
+
+<div class="layout">
+  <div class="canvas-wrap">
+    <canvas id="cv" width="420" height="380"></canvas>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl-title">Parameter</div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span class="slider-name">Gurthöhe <em>b</em></span>
+        <span class="slider-val" id="vb">80</span>
+      </div>
+      <input type="range" id="sb" min="20" max="140" value="80">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span class="slider-name">Steghöhe <em>h</em></span>
+        <span class="slider-val" id="vh">160</span>
+      </div>
+      <input type="range" id="sh" min="60" max="220" value="160">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span class="slider-name">Gurtdicke <em>t<sub>f</sub></em></span>
+        <span class="slider-val" id="vtf">8</span>
+      </div>
+      <input type="range" id="stf" min="3" max="20" value="8">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span class="slider-name">Stegdicke <em>t<sub>w</sub></em></span>
+        <span class="slider-val" id="vtw">6</span>
+      </div>
+      <input type="range" id="stw" min="3" max="20" value="6">
+    </div>
+
+    <div class="info-box">
+      <div class="ctrl-title" style="border:none;padding:0;margin-bottom:2px">Ergebnisse</div>
+      <div class="info-row">
+        <span class="info-label">Schubmittelpunkt e</span>
+        <span class="info-val dot-sm" id="re">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Schwerpunkt x̄</span>
+        <span class="info-val dot-s" id="rs">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Abstand SM → S</span>
+        <span class="info-val dot-dist" id="rd">—</span>
+      </div>
+    </div>
+
+    <div class="formula">
+      <span>e</span> = 3·b²·t<sub>f</sub> / (h·t<sub>w</sub> + 6·b·t<sub>f</sub>)<br>
+      <span style="color:var(--accent2)">x̄</span> = (b·t<sub>f</sub>·b/2·2 + h·t<sub>w</sub>·t<sub>w</sub>/2)<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;/ (2·b·t<sub>f</sub> + h·t<sub>w</sub>)
+    </div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#e8c547"></div>
+        Schubmittelpunkt SM
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#5b8dee"></div>
+        Schwerpunkt S
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:rgba(232,197,71,0.25);border:2px dashed #e8c547;border-radius:0"></div>
+        Schubfluss-Richtung
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+
+const W = cv.width, H = cv.height;
+
+function getVals() {
+  return {
+    b:  +document.getElementById('sb').value,
+    h:  +document.getElementById('sh').value,
+    tf: +document.getElementById('stf').value,
+    tw: +document.getElementById('stw').value,
+  };
+}
+
+function computeSM(b, h, tf, tw) {
+  // e = distance from steg centerline to shear center (towards steg/left)
+  const e = (3 * b * b * tf) / (h * tw + 6 * b * tf);
+  // Centroid x from left edge of steg (steg left edge = 0)
+  const A_gurte = 2 * b * tf;
+  const A_steg  = h * tw;
+  const xbar = (A_gurte * (tw + b / 2) + A_steg * tw / 2) / (A_gurte + A_steg);
+  return { e, xbar };
+}
+
+function draw() {
+  const { b, h, tf, tw } = getVals();
+  const { e, xbar } = computeSM(b, h, tf, tw);
+
+  // update UI
+  document.getElementById('vb').textContent  = b;
+  document.getElementById('vh').textContent  = h;
+  document.getElementById('vtf').textContent = tf;
+  document.getElementById('vtw').textContent = tw;
+  document.getElementById('re').textContent  = e.toFixed(1) + ' mm';
+  document.getElementById('rs').textContent  = xbar.toFixed(1) + ' mm';
+  document.getElementById('rd').textContent  = Math.abs(xbar - (tw - e)).toFixed(1) + ' mm';
+
+  ctx.clearRect(0, 0, W, H);
+
+  // --- layout: center the profile ---
+  // Profile spans: x from 0 to tw+b, y from 0 to h
+  // We want to center + leave room for SM label on left
+  const margin = 80;
+  const maxW = W - margin * 2;
+  const maxH = H - 80;
+  const scale = Math.min(maxW / (tw + b + 80), maxH / h);
+
+  // origin = top-left corner of steg outer face
+  const ox = margin + 50;  // extra left room for SM
+  const oy = (H - h * scale) / 2;
+
+  function sx(x) { return ox + x * scale; }
+  function sy(y) { return oy + y * scale; }
+
+  // ---- Draw coordinate cross (subtle) ----
+  ctx.strokeStyle = '#2a2a32';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 6]);
+  ctx.beginPath();
+  ctx.moveTo(0, sy(h / 2)); ctx.lineTo(W, sy(h / 2));
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ---- Draw C profile ----
+  // Steg
+  ctx.fillStyle = '#1e3a5f';
+  ctx.strokeStyle = '#3a6a9a';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.rect(sx(0), sy(0), tw * scale, h * scale);
+  ctx.fill(); ctx.stroke();
+
+  // Top gurt
+  ctx.fillStyle = '#152d4a';
+  ctx.beginPath();
+  ctx.rect(sx(0), sy(0), (tw + b) * scale, tf * scale);
+  ctx.fill(); ctx.stroke();
+
+  // Bottom gurt
+  ctx.beginPath();
+  ctx.rect(sx(0), sy(h - tf), (tw + b) * scale, tf * scale);
+  ctx.fill(); ctx.stroke();
+
+  // ---- Shear flow arrows ----
+  // Top gurt: arrow pointing left (→ left, since opening right)
+  const arrowY_top = sy(tf / 2);
+  const arrowY_bot = sy(h - tf / 2);
+  const arrowX_start = sx(tw + b * 0.85);
+  const arrowX_end   = sx(tw + b * 0.1);
+
+  function drawArrow(x1, y1, x2, y2, col, label) {
+    ctx.strokeStyle = col;
+    ctx.fillStyle = col;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+    ctx.stroke();
+    // arrowhead
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - 10 * Math.cos(angle - 0.4), y2 - 10 * Math.sin(angle - 0.4));
+    ctx.lineTo(x2 - 10 * Math.cos(angle + 0.4), y2 - 10 * Math.sin(angle + 0.4));
+    ctx.closePath(); ctx.fill();
+    if (label) {
+      ctx.fillStyle = col;
+      ctx.font = '600 11px IBM Plex Mono, monospace';
+      ctx.fillText(label, (x1 + x2) / 2 - 8, y1 - 8);
+    }
+  }
+
+  // Gurt arrows (pointing toward steg)
+  drawArrow(arrowX_start, arrowY_top, arrowX_end, arrowY_top, 'rgba(232,197,71,0.7)', 'q₁');
+  drawArrow(arrowX_start, arrowY_bot, arrowX_end, arrowY_bot, 'rgba(232,197,71,0.7)', 'q₁');
+
+  // Steg arrow (pointing down)
+  const stegArrowX = sx(tw / 2);
+  drawArrow(stegArrowX, sy(h * 0.2), stegArrowX, sy(h * 0.75), 'rgba(232,197,71,0.5)', 'q₂');
+
+  // ---- Schwerpunkt S ----
+  const Sx = sx(xbar);
+  const Sy = sy(h / 2);
+
+  ctx.beginPath();
+  ctx.arc(Sx, Sy, 8, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(91,141,238,0.2)';
+  ctx.fill();
+  ctx.strokeStyle = '#5b8dee';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = '#5b8dee';
+  ctx.beginPath();
+  ctx.arc(Sx, Sy, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#5b8dee';
+  ctx.font = '600 12px IBM Plex Sans, sans-serif';
+  ctx.fillText('S', Sx + 11, Sy + 5);
+
+  // ---- Schubmittelpunkt SM ----
+  // SM is at distance e to the LEFT of the steg left face (x=0)
+  const SMx = sx(-e);
+  const SMy = sy(h / 2);
+
+  // dashed line from SM to steg
+  ctx.strokeStyle = 'rgba(232,197,71,0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 5]);
+  ctx.beginPath();
+  ctx.moveTo(SMx, SMy); ctx.lineTo(sx(0), SMy);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // SM dot
+  ctx.beginPath();
+  ctx.arc(SMx, SMy, 10, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(232,197,71,0.15)';
+  ctx.fill();
+  ctx.strokeStyle = '#e8c547';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // crosshair inside
+  ctx.strokeStyle = '#e8c547';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(SMx - 5, SMy); ctx.lineTo(SMx + 5, SMy);
+  ctx.moveTo(SMx, SMy - 5); ctx.lineTo(SMx, SMy + 5);
+  ctx.stroke();
+
+  ctx.fillStyle = '#e8c547';
+  ctx.font = '600 12px IBM Plex Sans, sans-serif';
+  ctx.fillText('SM', SMx - 14, SMy - 15);
+
+  // distance annotation
+  if (SMx < sx(0) - 4) {
+    const midX = (SMx + sx(0)) / 2;
+    const annoY = SMy + 28;
+    ctx.strokeStyle = 'rgba(232,197,71,0.5)';
+    ctx.lineWidth = 1;
+    // horizontal bar
+    ctx.beginPath();
+    ctx.moveTo(SMx, annoY); ctx.lineTo(sx(0), annoY);
+    ctx.stroke();
+    // ticks
+    ctx.beginPath();
+    ctx.moveTo(SMx, annoY - 5); ctx.lineTo(SMx, annoY + 5);
+    ctx.moveTo(sx(0), annoY - 5); ctx.lineTo(sx(0), annoY + 5);
+    ctx.stroke();
+    // label
+    ctx.fillStyle = 'rgba(232,197,71,0.8)';
+    ctx.font = '11px IBM Plex Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('e = ' + e.toFixed(1), midX, annoY + 16);
+    ctx.textAlign = 'left';
+  }
+
+  // ---- S to SM distance ----
+  // subtle double arrow between S and SM
+  const smXcoord_from_left = tw - e; // x-coordinate of SM measured from left steg face
+  // SM is to the LEFT of steg, so its x in profile coords = -e
+  // xbar is from steg left face
+  // distance = xbar - (-e) = xbar + e
+  const distVal = (xbar + e).toFixed(1);
+  document.getElementById('rd').textContent = distVal + ' mm';
+
+  // ---- Labels on profile ----
+  ctx.fillStyle = 'rgba(91,141,238,0.6)';
+  ctx.font = '10px IBM Plex Mono, monospace';
+  ctx.textAlign = 'center';
+
+  // dimension: b
+  const bY = oy - 22;
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(sx(tw), bY); ctx.lineTo(sx(tw + b), bY);
+  ctx.stroke();
+  ctx.fillStyle = '#7a7a90';
+  ctx.fillText('b', sx(tw + b / 2), bY - 5);
+
+  // dimension: h
+  const hX = sx(tw + b) + 18;
+  ctx.beginPath();
+  ctx.moveTo(hX, sy(0)); ctx.lineTo(hX, sy(h));
+  ctx.stroke();
+  ctx.fillText('h', hX + 8, sy(h / 2) + 4);
+
+  ctx.textAlign = 'left';
+}
+
+// sliders
+['sb','sh','stf','stw'].forEach(id => {
+  document.getElementById(id).addEventListener('input', draw);
+});
+
+draw();
+</script>
+</body>
+</html>
