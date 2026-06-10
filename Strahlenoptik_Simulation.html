@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strahlenoptik – Spiegel & Linsen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0c0f15;
+    --panel:#141a23;
+    --panel-2:#1b232e;
+    --line:#2a3542;
+    --ink:#e7edf5;
+    --ink-dim:#8da0b5;
+    --ink-faint:#5a6b7d;
+    --amber:#ffce47;   /* Parallelstrahl */
+    --blue:#5aa9ff;    /* Brennpunktstrahl */
+    --pink:#ff6b8a;    /* Mittelpunkt-/Mittenstrahl */
+    --obj:#f2f6fc;     /* Gegenstand */
+    --real:#5bf0a8;    /* reelles Bild */
+    --virt:#c79bff;    /* virtuelles Bild */
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Space Grotesk",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1060px;margin:0 auto;padding:26px 20px 60px}
+  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 16px;
+    border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:20px}
+  h1{font-size:23px;font-weight:600;letter-spacing:-.01em;margin:0}
+  .sub{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-faint);
+    text-transform:uppercase;letter-spacing:.16em}
+
+  /* element selector */
+  .elements{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:18px}
+  .el{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink-dim);
+    border-radius:10px;padding:11px 8px 12px;cursor:pointer;text-align:center;
+    display:flex;flex-direction:column;align-items:center;gap:7px;transition:.16s;font-family:inherit}
+  .el:hover{border-color:#3a4b5e;color:var(--ink)}
+  .el.active{background:var(--panel-2);border-color:var(--amber);color:var(--ink);
+    box-shadow:0 0 0 1px var(--amber) inset, 0 6px 18px -10px rgba(255,206,71,.5)}
+  .el svg{width:48px;height:30px}
+  .el span{font-size:12px;line-height:1.15;font-weight:500}
+  @media(max-width:680px){.elements{grid-template-columns:repeat(2,1fr)}.el span{font-size:11.5px}}
+
+  /* stage */
+  .stage{position:relative;background:linear-gradient(180deg,#0a0d12,#0e1219);
+    border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  canvas{display:block;width:100%;height:auto;cursor:grab}
+  canvas.drag{cursor:grabbing}
+  .hint{position:absolute;left:14px;bottom:11px;font-family:"IBM Plex Mono",monospace;
+    font-size:11px;color:var(--ink-faint);pointer-events:none}
+
+  /* lower grid */
+  .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-top:16px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .card h2{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;
+    color:var(--ink-dim);margin:0 0 14px}
+
+  .ctrl{margin-bottom:16px}
+  .ctrl:last-child{margin-bottom:0}
+  .ctrl .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+  .ctrl label{font-size:13.5px;color:var(--ink)}
+  .ctrl .val{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--amber)}
+  input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:3px;
+    background:var(--line);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;
+    background:var(--ink);border:3px solid var(--amber);cursor:pointer;transition:.12s}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.12)}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--ink);
+    border:3px solid var(--amber);cursor:pointer}
+  input:disabled{opacity:.35}
+
+  /* readout */
+  .read{display:grid;grid-template-columns:auto 1fr;gap:9px 14px;font-size:13.5px;align-items:baseline}
+  .read dt{color:var(--ink-dim)}
+  .read dd{margin:0;font-family:"IBM Plex Mono",monospace;text-align:right;color:var(--ink)}
+  .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11.5px;font-family:"Space Grotesk";
+    font-weight:600;letter-spacing:.02em}
+  .tag.real{background:rgba(91,240,168,.13);color:var(--real)}
+  .tag.virt{background:rgba(199,155,255,.14);color:var(--virt)}
+  .eqn{margin-top:14px;padding-top:13px;border-top:1px solid var(--line);
+    font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink-dim);line-height:1.7}
+  .eqn b{color:var(--ink)}
+  .legend{display:flex;flex-wrap:wrap;gap:13px;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+  .legend span{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-dim)}
+  .legend i{width:15px;height:3px;border-radius:2px;display:inline-block}
+  .note{font-size:12.5px;color:var(--ink-faint);line-height:1.55;margin:10px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Strahlenoptik</h1>
+    <span class="sub">Spiegel &amp; Linsen · Bildkonstruktion</span>
+  </header>
+
+  <div class="elements" id="elements"></div>
+
+  <div class="stage">
+    <canvas id="cv"></canvas>
+    <div class="hint">Gegenstand ziehen, um Lage &amp; Größe zu ändern</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Einstellungen</h2>
+      <div class="ctrl">
+        <div class="top"><label>Gegenstandsweite g</label><span class="val" id="gVal"></span></div>
+        <input type="range" id="g" min="3" max="44" step="0.5">
+      </div>
+      <div class="ctrl">
+        <div class="top"><label id="fLabel">Brennweite f</label><span class="val" id="fVal"></span></div>
+        <input type="range" id="f" min="4" max="20" step="0.5">
+      </div>
+      <div class="ctrl">
+        <div class="top"><label>Gegenstandsgröße G</label><span class="val" id="hVal"></span></div>
+        <input type="range" id="h" min="3" max="16" step="0.5">
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--amber)"></i>Parallelstrahl</span>
+        <span><i style="background:var(--blue)"></i>Brennpunktstrahl</span>
+        <span><i style="background:var(--pink)"></i>Mittelpunktstrahl</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Bild</h2>
+      <dl class="read">
+        <dt>Bildweite b</dt><dd id="rB">–</dd>
+        <dt>Abbildung V</dt><dd id="rV">–</dd>
+        <dt>Bildgröße B</dt><dd id="rH">–</dd>
+        <dt>Art</dt><dd id="rType">–</dd>
+        <dt>Lage</dt><dd id="rOrient">–</dd>
+      </dl>
+      <div class="eqn" id="eqn"></div>
+      <p class="note" id="note"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+
+// ---- model state ----
+const state = { type:'concave', g:30, f:12, h:10 };
+
+// world: optical element at x=0, object on the left (x<0). Units = cm.
+const W_HALF = 48;          // world half-width shown
+let scale = 8, ox = 0, oy = 0, W = 0, H = 0;
+
+const ELEMENTS = [
+  { id:'plane',   name:'Ebener Spiegel', hasF:false, mirror:true,  icon:iconPlane },
+  { id:'concave', name:'Konkavspiegel',  hasF:true,  mirror:true,  icon:iconConcave },
+  { id:'convex',  name:'Konvexspiegel',  hasF:true,  mirror:true,  icon:iconConvex },
+  { id:'converging', name:'Sammellinse', hasF:true,  mirror:false, icon:iconConverging },
+  { id:'diverging',  name:'Zerstreuungslinse', hasF:true, mirror:false, icon:iconDiverging },
+];
+
+function iconPlane(c){return `<svg viewBox="0 0 48 30"><line x1="30" y1="3" x2="30" y2="27" stroke="${c}" stroke-width="2.5"/><path d="M30 5 l5 0 M30 12 l5 0 M30 19 l5 0 M30 26 l5 0" stroke="${c}" stroke-width="1" opacity=".5"/></svg>`}
+function iconConcave(c){return `<svg viewBox="0 0 48 30"><path d="M32 3 Q26 15 32 27" fill="none" stroke="${c}" stroke-width="2.5"/></svg>`}
+function iconConvex(c){return `<svg viewBox="0 0 48 30"><path d="M28 3 Q34 15 28 27" fill="none" stroke="${c}" stroke-width="2.5"/></svg>`}
+function iconConverging(c){return `<svg viewBox="0 0 48 30"><path d="M24 3 Q19 15 24 27 Q29 15 24 3 Z" fill="none" stroke="${c}" stroke-width="2.2"/><path d="M24 1 l0 -1 M24 29 l0 2" stroke="${c}" stroke-width="2.2"/></svg>`}
+function iconDiverging(c){return `<svg viewBox="0 0 48 30"><path d="M20 3 Q26 15 20 27 M28 3 Q22 15 28 27" fill="none" stroke="${c}" stroke-width="2.2"/><path d="M19 3 l9 0 M19 27 l9 0" stroke="${c}" stroke-width="2.2"/></svg>`}
+
+// ---- build selector ----
+const elBox = document.getElementById('elements');
+ELEMENTS.forEach(e=>{
+  const b=document.createElement('button');
+  b.className='el'+(e.id===state.type?' active':'');
+  b.dataset.id=e.id;
+  b.innerHTML = e.icon('currentColor')+`<span>${e.name}</span>`;
+  b.onclick=()=>{ state.type=e.id; syncSelector(); syncControls(); draw(); };
+  elBox.appendChild(b);
+});
+function syncSelector(){ [...elBox.children].forEach(b=>b.classList.toggle('active',b.dataset.id===state.type)); }
+
+// ---- controls ----
+const gI=document.getElementById('g'), fI=document.getElementById('f'), hI=document.getElementById('h');
+function syncControls(){
+  const el = ELEMENTS.find(e=>e.id===state.type);
+  gI.value=state.g; fI.value=state.f; hI.value=state.h;
+  fI.disabled=!el.hasF;
+  document.getElementById('gVal').textContent=state.g.toFixed(1)+' cm';
+  document.getElementById('fVal').textContent= el.hasF ? state.f.toFixed(1)+' cm' : '—';
+  document.getElementById('hVal').textContent=state.h.toFixed(1)+' cm';
+  document.getElementById('fLabel').textContent = el.mirror && el.hasF ? 'Brennweite f  (r = 2f)' : 'Brennweite f';
+}
+gI.oninput=e=>{state.g=+e.target.value;syncControls();draw();};
+fI.oninput=e=>{state.f=+e.target.value;syncControls();draw();};
+hI.oninput=e=>{state.h=+e.target.value;syncControls();draw();};
+
+// ---- coordinate transforms ----
+function resize(){
+  const cssW = cv.parentElement.clientWidth;
+  const cssH = Math.max(380, Math.min(520, cssW*0.52));
+  const dpr = window.devicePixelRatio||1;
+  cv.width=cssW*dpr; cv.height=cssH*dpr; cv.style.height=cssH+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  W=cssW; H=cssH;
+  scale = W/(2*W_HALF);
+  ox = W/2; oy = H/2;
+  draw();
+}
+const X = wx => ox + wx*scale;     // world x -> px
+const Y = wy => oy - wy*scale;     // world y -> px (y up)
+
+// ---- physics ----
+function solve(){
+  const t=state.type, g=state.g, h=state.h;
+  if(t==='plane') return {ix:g, iy:h, real:false, m:1, ok:true, b:g};
+  const mirror = (t==='concave'||t==='convex');
+  let f = state.f;
+  if(t==='convex'||t==='diverging') f=-f;          // diverging elements: f<0
+  const invb = 1/f - 1/g;
+  if(Math.abs(invb) < 1e-4) return {ok:false, atInf:true, f};
+  const b = 1/invb;
+  const m = -b/g;
+  const iy = m*h;
+  // position of image tip on the optical axis
+  let ix;
+  if(mirror) ix = -b;        // real (b>0) in front (left); virtual behind (right)
+  else       ix = b;         // lens: real (b>0) right; virtual left
+  return {ix, iy, real:b>0, m, b, f, ok:true};
+}
+
+// ---- drawing helpers ----
+function line(x1,y1,x2,y2,col,wd,dash){
+  ctx.save();
+  ctx.strokeStyle=col; ctx.lineWidth=wd||1.5;
+  ctx.setLineDash(dash||[]);
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.restore();
+}
+function dot(wx,wy,col,r){ ctx.fillStyle=col; ctx.beginPath(); ctx.arc(X(wx),Y(wy),r||4,0,7); ctx.fill(); }
+function arrow(wx, wy, col, dashed){
+  const x=X(wx), yb=Y(0), yt=Y(wy);
+  ctx.save();
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=3;
+  if(dashed) ctx.setLineDash([5,5]);
+  ctx.beginPath(); ctx.moveTo(x,yb); ctx.lineTo(x,yt); ctx.stroke();
+  ctx.setLineDash([]);
+  const dir = wy>=0?-1:1, head=8;
+  ctx.beginPath(); ctx.moveTo(x,yt); ctx.lineTo(x-6,yt-dir*head); ctx.lineTo(x+6,yt-dir*head); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function label(px,py,txt,col,align){
+  ctx.save(); ctx.fillStyle=col||'#8da0b5';
+  ctx.font='600 13px "IBM Plex Mono", monospace'; ctx.textAlign=align||'center';
+  ctx.fillText(txt,px,py); ctx.restore();
+}
+
+// draw one principal ray: incident from O to hit(0,hy); outgoing through image tip I
+// side: -1 mirror (reflected goes left), +1 lens (refracted goes right)
+function ray(O, hy, I, side, col){
+  const hit={x:0,y:hy};
+  // incident
+  line(X(O.x),Y(O.y),X(hit.x),Y(hit.y),col,1.6);
+  // outgoing direction along line hit->I
+  let dx=I.ix-hit.x, dy=I.iy-hit.y;
+  const len=Math.hypot(dx,dy)||1; dx/=len; dy/=len;
+  const farReal  = sameSide(dx, side);   // does it propagate to the allowed side?
+  // solid outgoing always travels to 'side'
+  let sx,sy;
+  if(farReal){ sx=dx; sy=dy; } else { sx=-dx; sy=-dy; }
+  const t = (side>0)? (W_HALF-hit.x)/sx : (-W_HALF-hit.x)/sx;
+  const ex = hit.x + sx*Math.abs(t), ey = hit.y + sy*Math.abs(t);
+  line(X(hit.x),Y(hit.y),X(ex),Y(ey),col,1.8);
+  // dashed back-extension to virtual image (image on the wrong side)
+  if(!farReal){
+    line(X(hit.x),Y(hit.y),X(I.ix),Y(I.iy),col,1.2,[4,4]);
+  }
+}
+function sameSide(dx,side){ return side>0 ? dx>0 : dx<0; }
+
+// ---- main draw ----
+function draw(){
+  if(!W) return;
+  ctx.clearRect(0,0,W,H);
+  const el=ELEMENTS.find(e=>e.id===state.type);
+  const g=state.g, h=state.h;
+  const O={x:-g, y:h};
+  const r=solve();
+
+  // optical axis
+  line(X(-W_HALF),Y(0),X(W_HALF),Y(0),'#33424f',1);
+  // faint vertical at element
+  line(X(0),0,X(0),H,'#1d2530',1);
+
+  drawElement(el);
+
+  // focal points & center
+  if(el.hasF){
+    const f=Math.abs(state.f);
+    if(el.mirror){
+      // F and C in front (left) for concave; behind (right) for convex
+      const s = (state.type==='concave')?-1:1;
+      dot(s*f,0,'#6f8298',3); label(X(s*f),Y(0)+18,'F','#6f8298');
+      dot(s*2*f,0,'#52637a',3); label(X(s*2*f),Y(0)+18, state.type==='concave'?'C':'C',' #52637a');
+      // mirror image-side focal (dim) opposite
+      dot(-s*f,0,'#3a4756',2.5);
+    } else {
+      dot(-f,0,'#6f8298',3); label(X(-f),Y(0)+18,'F','#6f8298');
+      dot(f,0,'#6f8298',3);  label(X(f),Y(0)+18,"F'",'#6f8298');
+    }
+  }
+
+  // ----- rays -----
+  if(state.type==='plane'){
+    drawPlaneRays(O);
+  } else if(r.ok){
+    const side = el.mirror?-1:1;
+    // parallel ray  -> hit (0,h)
+    ray(O, h, r, side, getCss('--amber'));
+    // ray through center/vertex -> hit (0,0)
+    ray(O, 0, r, side, getCss('--pink'));
+    // focal ray: incident aimed through front focus F=(-f,0)
+    const f = r.f; // signed
+    const Fx = el.mirror ? ( -f ) : (-Math.abs(f)); // front focus on object side
+    // hit y where line O->F crosses x=0
+    if(Math.abs(O.x-Fx)>1e-3){
+      const hy = O.y + (0-O.x)*(0-O.y)/(Fx-O.x);
+      ray(O, hy, r, side, getCss('--blue'));
+    }
+  } else if(r.atInf){
+    // object at focal point: outgoing parallel rays, no image
+    drawParallelOut(O, el);
+  }
+
+  // ----- object & image arrows -----
+  arrow(O.x, O.y, getCss('--obj'));
+  label(X(O.x), Y(0)+ (h>=0?20:-12), 'G', getCss('--obj'));
+
+  if(r.ok){
+    const col = r.real?getCss('--real'):getCss('--virt');
+    arrow(r.ix, r.iy, col, !r.real);
+    const ly = (r.iy>=0)? Y(0)+20 : Y(0)-10;
+    label(X(r.ix), ly, 'B', col);
+  }
+
+  updateReadout(r, el);
+}
+
+function getCss(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+function drawElement(el){
+  const col='#d6e2f0';
+  if(state.type==='plane'){
+    line(X(0),Y(-22),X(0),Y(22),col,3);
+    // hatching behind
+    ctx.save(); ctx.strokeStyle='#46566a'; ctx.lineWidth=1;
+    for(let yy=-22; yy<=22; yy+=4){ line(X(0),Y(yy),X(0)+9,Y(yy)-9,'#46566a',1); }
+    ctx.restore();
+    return;
+  }
+  if(el.mirror){
+    const concave = state.type==='concave';
+    const sgn = concave?1:-1;            // bend direction
+    ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=3; ctx.beginPath();
+    for(let yy=-24; yy<=24; yy+=1){
+      const bulge = sgn*(1 - (yy*yy)/(24*24))*6;  // curvature depth in cm
+      const px=X(bulge), py=Y(yy);
+      if(yy===-24) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+    // reflective hatch on back
+    ctx.strokeStyle='#46566a'; ctx.lineWidth=1;
+    for(let yy=-24; yy<=24; yy+=4){
+      const bulge=sgn*(1-(yy*yy)/(24*24))*6;
+      line(X(bulge),Y(yy),X(bulge)-sgn*8,Y(yy)+4,'#46566a',1);
+    }
+    ctx.restore();
+    return;
+  }
+  // lens
+  const converging = state.type==='converging';
+  ctx.save(); ctx.fillStyle='rgba(120,170,230,.10)'; ctx.strokeStyle=col; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  const Hh=26, wmax=5;
+  if(converging){
+    for(let yy=-Hh; yy<=Hh; yy++){ const w=(1-(yy*yy)/(Hh*Hh))*wmax; const p=X(w),q=Y(yy); yy===-Hh?ctx.moveTo(p,q):ctx.lineTo(p,q);}
+    for(let yy=Hh; yy>=-Hh; yy--){ const w=(1-(yy*yy)/(Hh*Hh))*wmax; ctx.lineTo(X(-w),Y(yy)); }
+  } else {
+    const edge=6;
+    for(let yy=-Hh; yy<=Hh; yy++){ const w=edge-(1-(yy*yy)/(Hh*Hh))*wmax; const p=X(w),q=Y(yy); yy===-Hh?ctx.moveTo(p,q):ctx.lineTo(p,q);}
+    for(let yy=Hh; yy>=-Hh; yy--){ const w=edge-(1-(yy*yy)/(Hh*Hh))*wmax; ctx.lineTo(X(-w),Y(yy)); }
+  }
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // arrow tips for lens schematic
+  const tip=getCss('--ink-faint');
+  ctx.restore();
+}
+
+function drawPlaneRays(O){
+  const I={ix:state.g, iy:state.h};
+  const hits=[state.h, 0, -state.h*0.55];
+  const cols=[getCss('--amber'),getCss('--pink'),getCss('--blue')];
+  hits.forEach((hy,i)=>{
+    const col=cols[i];
+    // incident O -> (0,hy)
+    line(X(O.x),Y(O.y),X(0),Y(hy),col,1.6);
+    // reflected: flip x-component of incident direction
+    let dx=0-O.x, dy=hy-O.y; // incident dir
+    let rx=-dx, ry=dy;       // reflected (mirror = vertical plane)
+    const len=Math.hypot(rx,ry); rx/=len; ry/=len;
+    const t=(-W_HALF-0)/rx;
+    line(X(0),Y(hy),X(0+rx*Math.abs(t)),Y(hy+ry*Math.abs(t)),col,1.8);
+    // dashed extension behind mirror to image
+    line(X(0),Y(hy),X(I.ix),Y(I.iy),col,1.2,[4,4]);
+  });
+}
+
+function drawParallelOut(O, el){
+  const side=el.mirror?-1:1;
+  [state.h,0].forEach(hy=>{
+    const col=hy?getCss('--amber'):getCss('--pink');
+    line(X(O.x),Y(O.y),X(0),Y(hy),col,1.6);
+    const ex=side>0?W_HALF:-W_HALF;
+    line(X(0),Y(hy),X(ex),Y(hy),col,1.8);
+  });
+}
+
+// ---- readout ----
+function updateReadout(r, el){
+  const $=id=>document.getElementById(id);
+  const eq=$('eqn'), note=$('note');
+  if(state.type==='plane'){
+    $('rB').textContent='∞ (virtuell)'; $('rV').textContent='+1,00';
+    $('rH').textContent=state.h.toFixed(1)+' cm';
+    $('rType').innerHTML='<span class="tag virt">virtuell</span>';
+    $('rOrient').textContent='aufrecht';
+    eq.innerHTML='Bild liegt symmetrisch <b>hinter</b> dem Spiegel, gleich groß, seitenverkehrt.';
+    note.textContent='Ebener Spiegel: das Bild ist immer virtuell, aufrecht und gleich groß. Die reflektierten Strahlen divergieren; ihre rückwärtigen Verlängerungen (gestrichelt) schneiden sich hinter dem Spiegel.';
+    return;
+  }
+  if(!r.ok){
+    $('rB').textContent='→ ∞'; $('rV').textContent='→ ∞'; $('rH').textContent='→ ∞';
+    $('rType').innerHTML='<span class="tag virt">kein Bild</span>';
+    $('rOrient').textContent='—';
+    eq.innerHTML='Gegenstand im Brennpunkt: reflektierte/gebrochene Strahlen verlaufen <b>parallel</b> → Bild im Unendlichen.';
+    note.textContent='Liegt der Gegenstand genau im Brennpunkt, entsteht kein endliches Bild.';
+    return;
+  }
+  $('rB').textContent=Math.abs(r.b).toFixed(1)+' cm';
+  $('rV').textContent=(r.m>=0?'+':'')+r.m.toFixed(2);
+  $('rH').textContent=Math.abs(r.iy).toFixed(1)+' cm';
+  $('rType').innerHTML = r.real? '<span class="tag real">reell</span>' : '<span class="tag virt">virtuell</span>';
+  $('rOrient').textContent = r.m<0 ? 'umgekehrt' : 'aufrecht';
+
+  const fsign = (state.type==='convex'||state.type==='diverging')?'−':'+';
+  const eqName = el.mirror ? '1/g + 1/b = 1/f' : '1/g + 1/b = 1/f';
+  eq.innerHTML = `<b>${eqName}</b> &nbsp; mit f = ${fsign}${Math.abs(state.f).toFixed(1)} cm`
+    + (el.mirror? `<br>r = 2f = ${fsign}${(2*Math.abs(state.f)).toFixed(1)} cm` : '')
+    + `<br>V = −b/g = ${(r.m>=0?'+':'')}${r.m.toFixed(2)}`;
+
+  note.textContent = noteFor(state.type, r);
+}
+
+function noteFor(t, r){
+  const big=Math.abs(r.m)>1;
+  switch(t){
+    case 'concave':
+      return r.real
+        ? `Reelles, umgekehrtes Bild ${big?'(vergrößert)':'(verkleinert)'} vor dem Spiegel – hier würden sich die Strahlen tatsächlich treffen (z. B. auf einem Schirm).`
+        : 'Gegenstand innerhalb der Brennweite: aufrechtes, vergrößertes virtuelles Bild hinter dem Spiegel (Schmink-/Rasierspiegel).';
+    case 'convex':
+      return 'Konvexspiegel: immer virtuell, aufrecht und verkleinert, mit großem Blickfeld (Verkehrsspiegel, Außenspiegel).';
+    case 'converging':
+      return r.real
+        ? `Sammellinse, Gegenstand außerhalb f: reelles, umgekehrtes Bild auf der anderen Seite ${big?'(vergrößert)':'(verkleinert)'} – Prinzip von Kamera & Auge.`
+        : 'Sammellinse, Gegenstand innerhalb f: aufrechtes, vergrößertes virtuelles Bild auf derselben Seite – die Lupe.';
+    case 'diverging':
+      return 'Zerstreuungslinse: immer virtuell, aufrecht und verkleinert, auf der Gegenstandsseite.';
+  }
+  return '';
+}
+
+// ---- dragging the object ----
+let dragging=false;
+function pointerWorld(ev){
+  const rect=cv.getBoundingClientRect();
+  const px=(ev.touches?ev.touches[0].clientX:ev.clientX)-rect.left;
+  const py=(ev.touches?ev.touches[0].clientY:ev.clientY)-rect.top;
+  return { x:(px-ox)/scale, y:(oy-py)/scale };
+}
+function startDrag(ev){
+  const w=pointerWorld(ev);
+  // grab if near the object (left half)
+  if(Math.abs(w.x-(-state.g))<6 || w.x<-2){ dragging=true; cv.classList.add('drag'); moveDrag(ev); ev.preventDefault(); }
+}
+function moveDrag(ev){
+  if(!dragging) return;
+  const w=pointerWorld(ev);
+  state.g = Math.min(44, Math.max(3, -w.x));
+  state.h = Math.min(16, Math.max(3, w.y>0? w.y : 3));
+  syncControls(); draw(); ev.preventDefault();
+}
+function endDrag(){ dragging=false; cv.classList.remove('drag'); }
+cv.addEventListener('mousedown',startDrag); window.addEventListener('mousemove',moveDrag); window.addEventListener('mouseup',endDrag);
+cv.addEventListener('touchstart',startDrag,{passive:false}); window.addEventListener('touchmove',moveDrag,{passive:false}); window.addEventListener('touchend',endDrag);
+
+window.addEventListener('resize',resize);
+syncControls(); resize();
+</script>
+</body>
+</html>
