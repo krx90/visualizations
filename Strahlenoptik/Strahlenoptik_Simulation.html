@@ -162,8 +162,8 @@ const ELEMENTS = [
 ];
 
 function iconPlane(c){return `<svg viewBox="0 0 48 30"><line x1="30" y1="3" x2="30" y2="27" stroke="${c}" stroke-width="2.5"/><path d="M30 5 l5 0 M30 12 l5 0 M30 19 l5 0 M30 26 l5 0" stroke="${c}" stroke-width="1" opacity=".5"/></svg>`}
-function iconConcave(c){return `<svg viewBox="0 0 48 30"><path d="M32 3 Q26 15 32 27" fill="none" stroke="${c}" stroke-width="2.5"/></svg>`}
-function iconConvex(c){return `<svg viewBox="0 0 48 30"><path d="M28 3 Q34 15 28 27" fill="none" stroke="${c}" stroke-width="2.5"/></svg>`}
+function iconConcave(c){return `<svg viewBox="0 0 48 30"><path d="M28 3 Q34 15 28 27" fill="none" stroke="${c}" stroke-width="2.5"/></svg>`}
+function iconConvex(c){return `<svg viewBox="0 0 48 30"><path d="M32 3 Q26 15 32 27" fill="none" stroke="${c}" stroke-width="2.5"/></svg>`}
 function iconConverging(c){return `<svg viewBox="0 0 48 30"><path d="M24 3 Q19 15 24 27 Q29 15 24 3 Z" fill="none" stroke="${c}" stroke-width="2.2"/><path d="M24 1 l0 -1 M24 29 l0 2" stroke="${c}" stroke-width="2.2"/></svg>`}
 function iconDiverging(c){return `<svg viewBox="0 0 48 30"><path d="M20 3 Q26 15 20 27 M28 3 Q22 15 28 27" fill="none" stroke="${c}" stroke-width="2.2"/><path d="M19 3 l9 0 M19 27 l9 0" stroke="${c}" stroke-width="2.2"/></svg>`}
 
@@ -278,11 +278,25 @@ function ray(O, hy, I, side, col, hitX){
 function sameSide(dx,side){ return side>0 ? dx>0 : dx<0; }
 
 // x-Position der gekrümmten Spiegelfläche in Höhe y (Scheitel auf der Achse bei x=0)
-const M_HEIGHT = 24, M_DEPTH = 5;
+const M_HEIGHT = 24;
+// Tiefe der Schale folgt der Krümmung r = 2f: kleines f -> tiefer/stärker gewölbt.
+// Schematisch skaliert und auf einen bildschirmtauglichen Bereich begrenzt.
+function mirrorDepth(){
+  const f = Math.max(1, state.f);
+  return Math.max(2.5, Math.min(9.5, 27.5/f + 1.6));  // ~8.5 cm bei f=4 ... ~3 cm bei f=20
+}
+// Linsenwölbung folgt der Linsenmacher-Gleichung (Krümmung ~ 1/f):
+// kleines f -> stärker gewölbte Flächen (dickere Sammel- bzw. tiefere Zerstreuungslinse)
+function lensBulge(){
+  const f = Math.max(1, state.f);
+  return Math.max(2, Math.min(7, 25/f + 0.75));       // ~7 cm bei f=4 ... ~2 cm bei f=20
+}
 function mirrorSurfaceX(y){
-  const sgn = (state.type==='concave') ? 1 : -1;   // konkav: Rand nach +x, konvex: nach −x
+  // konkav (C/F links, vor dem Spiegel): Ränder wölben sich zum Gegenstand -> −x
+  // konvex (C/F rechts, hinter dem Spiegel): Ränder wölben sich weg -> +x
+  const sgn = (state.type==='concave') ? -1 : 1;
   const yy = Math.max(-M_HEIGHT, Math.min(M_HEIGHT, y));
-  return sgn * (yy*yy)/(M_HEIGHT*M_HEIGHT) * M_DEPTH;
+  return sgn * (yy*yy)/(M_HEIGHT*M_HEIGHT) * mirrorDepth();
 }
 
 // ---- main draw ----
@@ -375,12 +389,11 @@ function drawElement(el){
       if(yy===-M_HEIGHT) ctx.moveTo(px,py); else ctx.lineTo(px,py);
     }
     ctx.stroke();
-    // reflektierende Rückseite (Schraffur) – zeigt von der Spiegelfläche weg
-    const back = concave ? 1 : -1;             // verspiegelte Seite
+    // reflektierende Fläche zeigt nach links (zum Gegenstand) -> Rückseite/Schraffur rechts
     ctx.strokeStyle='#46566a'; ctx.lineWidth=1;
     for(let yy=-M_HEIGHT; yy<=M_HEIGHT; yy+=4){
       const sx=mirrorSurfaceX(yy);
-      line(X(sx),Y(yy),X(sx)+back*7,Y(yy)+4,'#46566a',1);
+      line(X(sx),Y(yy),X(sx)+7,Y(yy)+4,'#46566a',1);
     }
     ctx.restore();
     return;
@@ -389,18 +402,16 @@ function drawElement(el){
   const converging = state.type==='converging';
   ctx.save(); ctx.fillStyle='rgba(120,170,230,.10)'; ctx.strokeStyle=col; ctx.lineWidth=2.5;
   ctx.beginPath();
-  const Hh=26, wmax=5;
+  const Hh=26, wmax=lensBulge();          // Flächenwölbung ~ 1/f
   if(converging){
     for(let yy=-Hh; yy<=Hh; yy++){ const w=(1-(yy*yy)/(Hh*Hh))*wmax; const p=X(w),q=Y(yy); yy===-Hh?ctx.moveTo(p,q):ctx.lineTo(p,q);}
     for(let yy=Hh; yy>=-Hh; yy--){ const w=(1-(yy*yy)/(Hh*Hh))*wmax; ctx.lineTo(X(-w),Y(yy)); }
   } else {
-    const edge=6;
+    const edge=wmax+1.8;                   // Rand stets dicker als die Mitte
     for(let yy=-Hh; yy<=Hh; yy++){ const w=edge-(1-(yy*yy)/(Hh*Hh))*wmax; const p=X(w),q=Y(yy); yy===-Hh?ctx.moveTo(p,q):ctx.lineTo(p,q);}
     for(let yy=Hh; yy>=-Hh; yy--){ const w=edge-(1-(yy*yy)/(Hh*Hh))*wmax; ctx.lineTo(X(-w),Y(yy)); }
   }
   ctx.closePath(); ctx.fill(); ctx.stroke();
-  // arrow tips for lens schematic
-  const tip=getCss('--ink-faint');
   ctx.restore();
 }
 
