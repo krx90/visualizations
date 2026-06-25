@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Gebietsintegral – Summe der Türmchen</title>
+<style>
+  :root{
+    --bg:#0b1220;
+    --panel:rgba(15,23,42,.82);
+    --line:rgba(148,163,184,.18);
+    --text:#e2e8f0;
+    --muted:#94a3b8;
+    --amber:#f59e0b;
+    --cyan:#22d3ee;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;overflow:hidden}
+  #app{position:fixed;inset:0}
+  #app canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;display:block;touch-action:none}
+
+  .panel{
+    position:fixed;top:14px;left:14px;width:312px;max-width:calc(100vw - 28px);
+    max-height:calc(100vh - 28px);overflow:auto;
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:16px 16px 14px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 18px 50px -20px rgba(0,0,0,.7);
+  }
+  .panel h1{font-size:15px;letter-spacing:.2px;margin:0;font-weight:650}
+  .panel .sub{color:var(--muted);font-size:12px;margin:3px 0 14px;line-height:1.45}
+
+  .grp{margin:0 0 13px}
+  .grp > label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.7px;
+    color:var(--muted);margin:0 0 6px;font-weight:600}
+
+  .seg{display:flex;gap:4px;background:rgba(2,6,23,.5);border:1px solid var(--line);
+    border-radius:10px;padding:4px}
+  .seg button{flex:1;border:0;background:transparent;color:var(--muted);font:inherit;
+    font-size:12.5px;font-weight:600;padding:7px 6px;border-radius:7px;cursor:pointer;
+    transition:background .15s,color .15s}
+  .seg button[aria-pressed="true"]{background:rgba(245,158,11,.16);color:#fde68a}
+
+  .slider-row{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px}
+  .slider-row .n{font-variant-numeric:tabular-nums;font-weight:700;font-size:14px}
+  .slider-row .n small{color:var(--muted);font-weight:500;font-size:11px}
+  input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:4px;border-radius:99px;
+    background:linear-gradient(90deg,#1e40af,#0d9488,#f59e0b);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+    background:#fff;border:3px solid var(--amber);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:#fff;
+    border:3px solid var(--amber);cursor:pointer}
+
+  .checks{display:flex;flex-direction:column;gap:8px}
+  .chk{display:flex;align-items:center;gap:9px;font-size:13px;cursor:pointer;user-select:none}
+  .chk input{appearance:none;-webkit-appearance:none;width:34px;height:19px;border-radius:99px;
+    background:rgba(2,6,23,.7);border:1px solid var(--line);position:relative;cursor:pointer;flex:0 0 auto;
+    transition:background .18s}
+  .chk input::after{content:"";position:absolute;top:1px;left:1px;width:15px;height:15px;border-radius:50%;
+    background:#64748b;transition:transform .18s,background .18s}
+  .chk input:checked{background:rgba(245,158,11,.3)}
+  .chk input:checked::after{transform:translateX(15px);background:var(--amber)}
+
+  /* signature: konvergenz-anzeige */
+  .conv{margin-top:4px;border:1px solid var(--line);border-radius:13px;overflow:hidden;
+    background:rgba(2,6,23,.4)}
+  .conv .row{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;gap:10px}
+  .conv .row + .row{border-top:1px solid var(--line)}
+  .conv .lbl{font-family:Cambria,Georgia,"Times New Roman",serif;font-style:italic;font-size:16px;
+    color:#cbd5e1}
+  .conv .lbl b{font-style:normal}
+  .conv .val{font-variant-numeric:tabular-nums;font-weight:700;font-size:16px;letter-spacing:.3px}
+  .conv .approx .val{color:var(--amber)}
+  .conv .err{background:rgba(2,6,23,.55)}
+  .conv .err .lbl,.conv .err .val{font-size:12.5px;color:var(--muted);font-weight:600;
+    font-style:normal;font-family:inherit;text-transform:uppercase;letter-spacing:.6px}
+  .conv .err .val{color:#cbd5e1;text-transform:none;letter-spacing:.3px}
+
+  .dims{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-top:10px;font-size:12px}
+  .dims div{display:flex;justify-content:space-between;gap:8px;color:var(--muted)}
+  .dims b{color:var(--text);font-variant-numeric:tabular-nums;font-weight:600}
+
+  .sample{margin-top:11px;border:1px dashed rgba(245,158,11,.5);border-radius:12px;padding:10px 12px;
+    background:rgba(245,158,11,.06)}
+  .sample h2{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:#fcd34d}
+  .sample .f{font-family:Cambria,Georgia,serif;font-style:italic;font-size:13.5px;color:#fde68a;margin-bottom:6px}
+  .sample .dims{margin-top:0}
+
+  .hint{margin-top:12px;font-size:11px;color:var(--muted);line-height:1.5;border-top:1px solid var(--line);
+    padding-top:10px}
+  .hint kbd{font-family:inherit;background:rgba(148,163,184,.15);border:1px solid var(--line);
+    border-radius:5px;padding:1px 5px;font-size:10.5px}
+
+  .collapse{position:absolute;top:13px;right:13px;width:26px;height:26px;border-radius:8px;
+    border:1px solid var(--line);background:rgba(2,6,23,.5);color:var(--muted);cursor:pointer;
+    display:none;align-items:center;justify-content:center;font-size:14px;line-height:1}
+  .panel.closed .body{display:none}
+  .panel.closed{width:auto}
+  @media (max-width:560px){
+    .collapse{display:flex}
+    .panel{width:300px}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div class="panel" id="panel">
+  <button class="collapse" id="collapse" aria-label="Bedienfeld ein-/ausklappen">–</button>
+  <h1>Gebietsintegral als Türmchen</h1>
+  <p class="sub">Jedes Türmchen hat die Grundfläche Δx·Δy und die Höhe f(x,y). Die Summe der Türmchen‑Volumina nähert das Integral ∬<sub>B</sub> f dA an.</p>
+
+  <div class="body">
+    <div class="grp">
+      <label>Funktion f(x,y)</label>
+      <div class="seg" id="funcSeg">
+        <button data-f="dome" aria-pressed="true">Hügel</button>
+        <button data-f="waves" aria-pressed="false">Wellen</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <label>Gebiet B</label>
+      <div class="seg" id="regionSeg">
+        <button data-r="disk" aria-pressed="true">Kreis</button>
+        <button data-r="rect" aria-pressed="false">Rechteck</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="slider-row">
+        <label style="margin:0">Auflösung</label>
+        <span class="n" id="nLabel">14 <small>pro Achse</small></span>
+      </div>
+      <input type="range" id="res" min="4" max="44" step="1" value="14">
+    </div>
+
+    <div class="grp">
+      <div class="checks">
+        <label class="chk"><input type="checkbox" id="showSurface" checked> Glatte Fläche zeigen</label>
+        <label class="chk"><input type="checkbox" id="showSample" checked> Ein Türmchen hervorheben</label>
+        <label class="chk"><input type="checkbox" id="autoRotate"> Automatisch drehen</label>
+      </div>
+    </div>
+
+    <div class="conv">
+      <div class="row">
+        <span class="lbl">∬<b>B</b> f dA</span>
+        <span class="val" id="trueVal">–</span>
+      </div>
+      <div class="row approx">
+        <span class="lbl">Σ f·Δx·Δy</span>
+        <span class="val" id="sumVal">–</span>
+      </div>
+      <div class="row err">
+        <span class="lbl">Fehler</span>
+        <span class="val" id="errVal">–</span>
+      </div>
+    </div>
+
+    <div class="dims">
+      <div>Türmchen <b id="count">–</b></div>
+      <div>ΔA <b id="dA">–</b></div>
+      <div>Δx <b id="dx">–</b></div>
+      <div>Δy <b id="dy">–</b></div>
+    </div>
+
+    <div class="sample" id="sampleCard">
+      <h2>Ein einzelnes Türmchen</h2>
+      <div class="f" id="sampleF">dV = f(x,y)·Δx·Δy</div>
+      <div class="dims">
+        <div>x <b id="sx">–</b></div>
+        <div>y <b id="sy">–</b></div>
+        <div>Höhe f <b id="sh">–</b></div>
+        <div>dV <b id="sv">–</b></div>
+      </div>
+    </div>
+
+    <div class="hint"><kbd>Ziehen</kbd> zum Drehen · <kbd>Scrollen</kbd> zum Zoomen. Schiebe die Auflösung nach rechts — die Summe rückt an das Integral heran.</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  "use strict";
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- Mathematik ----------
+  const FUNCS = {
+    dome:  (x,y)=> 0.45 + 1.9*Math.exp(-((x*x+y*y)/7)) + 0.28*Math.sin(1.1*x)*Math.cos(1.0*y),
+    waves: (x,y)=> 1.5 + 0.8*Math.sin(0.9*x) + 0.7*Math.cos(0.9*y)
+  };
+  const params = { func:'dome', region:'disk', n:14, showSurface:true, showSample:true, autoRotate:!reduceMotion };
+  const samplePoint = { x:0.95, y:-0.75 };
+
+  function f(x,y){ return FUNCS[params.func](x,y); }
+
+  function regionBounds(){
+    if(params.region==='disk') return { xmin:-3, xmax:3, ymin:-3, ymax:3, R:3 };
+    return { xmin:-3, xmax:3, ymin:-2.4, ymax:2.4 };
+  }
+  function inRegion(x,y){
+    const b = regionBounds();
+    if(params.region==='disk') return (x*x+y*y) <= b.R*b.R;
+    return x>=b.xmin && x<=b.xmax && y>=b.ymin && y<=b.ymax;
+  }
+
+  // feine Referenz ~ "wahres" Integral
+  let referenceValue = 0;
+  function computeReference(){
+    const b = regionBounds(), N = 260;
+    const dx=(b.xmax-b.xmin)/N, dy=(b.ymax-b.ymin)/N, dA=dx*dy;
+    let s=0;
+    for(let i=0;i<N;i++){
+      const xc=b.xmin+(i+0.5)*dx;
+      for(let j=0;j<N;j++){
+        const yc=b.ymin+(j+0.5)*dy;
+        if(inRegion(xc,yc)) s += f(xc,yc)*dA;
+      }
+    }
+    referenceValue = s;
+  }
+
+  // ---------- Three.js Grundgerüst ----------
+  const app = document.getElementById('app');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0b1220);
+  scene.fog = new THREE.Fog(0x0b1220, 22, 46);
+
+  const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 100);
+  const renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  app.appendChild(renderer.domElement);
+
+  // Licht
+  scene.add(new THREE.HemisphereLight(0xbcd4ff, 0x0a0f1c, 0.85));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.85);
+  dir.position.set(6,12,4); scene.add(dir);
+  const dir2 = new THREE.DirectionalLight(0x88aaff, 0.3);
+  dir2.position.set(-6,5,-7); scene.add(dir2);
+
+  // Orbit (eigene Steuerung, da OrbitControls in r128 hier fehlt)
+  const target = new THREE.Vector3(0,0.9,0);
+  let theta = 0.78, phi = 0.96, radius = 13.5;
+  function applyCamera(){
+    const sp = Math.sin(phi), cp = Math.cos(phi);
+    camera.position.set(
+      target.x + radius*sp*Math.sin(theta),
+      target.y + radius*cp,
+      target.z + radius*sp*Math.cos(theta)
+    );
+    camera.lookAt(target);
+  }
+
+  // ---------- statische Geometrie: Gitter, Achsen, Gebiet ----------
+  const staticGroup = new THREE.Group(); scene.add(staticGroup);
+
+  function makeLabel(text, color){
+    const c = document.createElement('canvas'); c.width=256; c.height=128;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = color; ctx.font = 'italic 600 64px Georgia, serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(text, 128, 64);
+    const tex = new THREE.CanvasTexture(c); tex.anisotropy=4;
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true, depthTest:false}));
+    spr.scale.set(2.2,1.1,1);
+    return spr;
+  }
+
+  function buildStatic(){
+    while(staticGroup.children.length){ const o=staticGroup.children.pop(); o.geometry&&o.geometry.dispose&&o.geometry.dispose(); o.material&&o.material.dispose&&o.material.dispose(); }
+    const b = regionBounds();
+
+    // Bodengitter
+    const grid = new THREE.GridHelper(8, 16, 0x1e293b, 0x16202e);
+    grid.position.y = 0; staticGroup.add(grid);
+
+    // Gebiet B auf dem Boden
+    let regionGeo, edgeGeo;
+    if(params.region==='disk'){
+      regionGeo = new THREE.CircleGeometry(b.R, 80);
+      const pts=[]; for(let k=0;k<=80;k++){const a=k/80*Math.PI*2;pts.push(new THREE.Vector3(Math.cos(a)*b.R,0.012,Math.sin(a)*b.R));}
+      edgeGeo = new THREE.BufferGeometry().setFromPoints(pts);
+    } else {
+      const w=b.xmax-b.xmin, h=b.ymax-b.ymin;
+      regionGeo = new THREE.PlaneGeometry(w,h);
+      const x0=b.xmin,x1=b.xmax,z0=b.ymin,z1=b.ymax;
+      edgeGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(x0,0.012,z0),new THREE.Vector3(x1,0.012,z0),
+        new THREE.Vector3(x1,0.012,z1),new THREE.Vector3(x0,0.012,z1),
+        new THREE.Vector3(x0,0.012,z0)]);
+    }
+    const regionMesh = new THREE.Mesh(regionGeo, new THREE.MeshBasicMaterial({color:0x38bdf8, transparent:true, opacity:0.07, side:THREE.DoubleSide}));
+    regionMesh.rotation.x = -Math.PI/2; regionMesh.position.y=0.008; staticGroup.add(regionMesh);
+    staticGroup.add(new THREE.Line(edgeGeo, new THREE.LineBasicMaterial({color:0x64748b})));
+
+    // Achsen
+    const axMat = new THREE.LineBasicMaterial({color:0x475569});
+    const ax = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-4.2,0,0), new THREE.Vector3(4.2,0,0)]);
+    const az = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0,0,-4.2), new THREE.Vector3(0,0,4.2)]);
+    const ay = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0,0,0), new THREE.Vector3(0,3.4,0)]);
+    staticGroup.add(new THREE.Line(ax,axMat));
+    staticGroup.add(new THREE.Line(az,axMat));
+    staticGroup.add(new THREE.Line(ay,new THREE.LineBasicMaterial({color:0x64748b})));
+
+    const lx = makeLabel('x','#cbd5e1'); lx.position.set(4.6,0.2,0); staticGroup.add(lx);
+    const ly = makeLabel('y','#cbd5e1'); ly.position.set(0,0.2,4.6); staticGroup.add(ly);
+    const lz = makeLabel('f','#93c5fd'); lz.position.set(0,3.7,0); lz.scale.set(1.4,0.7,1); staticGroup.add(lz);
+  }
+
+  // ---------- Türmchen ----------
+  let towers = null, sampleBox = null, sampleEdges = null;
+  const boxGeo = new THREE.BoxGeometry(1,1,1);
+  const dummy = new THREE.Object3D();
+  const tmpColor = new THREE.Color();
+
+  function ramp(t){ // 0..1 -> blau -> teal -> amber
+    t = Math.max(0,Math.min(1,t));
+    const stops=[[0,[30,64,175]],[0.5,[13,148,136]],[1,[245,158,11]]];
+    let a=stops[0],c=stops[stops.length-1];
+    for(let i=0;i<stops.length-1;i++){ if(t>=stops[i][0]&&t<=stops[i+1][0]){a=stops[i];c=stops[i+1];break;} }
+    const u=(t-a[0])/(c[0]-a[0]||1);
+    return tmpColor.setRGB(
+      (a[1][0]+(c[1][0]-a[1][0])*u)/255,
+      (a[1][1]+(c[1][1]-a[1][1])*u)/255,
+      (a[1][2]+(c[1][2]-a[1][2])*u)/255);
+  }
+
+  function disposeTowers(){
+    if(towers){ scene.remove(towers); towers.dispose&&towers.dispose(); towers=null; }
+    if(sampleBox){ scene.remove(sampleBox); sampleBox.geometry.dispose(); sampleBox.material.dispose(); sampleBox=null; }
+    if(sampleEdges){ scene.remove(sampleEdges); sampleEdges.geometry.dispose(); sampleEdges.material.dispose(); sampleEdges=null; }
+  }
+
+  function buildTowers(){
+    disposeTowers();
+    const b = regionBounds(), n = params.n;
+    const dx=(b.xmax-b.xmin)/n, dy=(b.ymax-b.ymin)/n, dA=dx*dy;
+    const gap = 0.86;
+
+    // erst sammeln
+    const cells=[]; let hmin=Infinity,hmax=-Infinity, sum=0;
+    let bestIdx=-1, bestDist=Infinity;
+    for(let i=0;i<n;i++){
+      const xc=b.xmin+(i+0.5)*dx;
+      for(let j=0;j<n;j++){
+        const yc=b.ymin+(j+0.5)*dy;
+        if(!inRegion(xc,yc)) continue;
+        const h=f(xc,yc);
+        cells.push({xc,yc,h});
+        sum += h*dA;
+        if(h<hmin)hmin=h; if(h>hmax)hmax=h;
+      }
+    }
+    // Sample-Türmchen wählen (nächstes zum Sample-Punkt, das im Gebiet liegt)
+    for(let k=0;k<cells.length;k++){
+      const d=(cells[k].xc-samplePoint.x)**2+(cells[k].yc-samplePoint.y)**2;
+      if(d<bestDist){bestDist=d;bestIdx=k;}
+    }
+
+    towers = new THREE.InstancedMesh(boxGeo, new THREE.MeshLambertMaterial(), cells.length);
+    towers.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    const range = (hmax-hmin)||1;
+    for(let k=0;k<cells.length;k++){
+      const {xc,yc,h}=cells[k];
+      dummy.position.set(xc, h/2, yc);
+      dummy.scale.set(dx*gap, h, dy*gap);
+      dummy.rotation.set(0,0,0);
+      dummy.updateMatrix();
+      towers.setMatrixAt(k, dummy.matrix);
+      const col = (k===bestIdx && params.showSample) ? tmpColor.set(0xfff1d6) : ramp((h-hmin)/range);
+      towers.setColorAt(k, col);
+    }
+    towers.instanceMatrix.needsUpdate=true;
+    if(towers.instanceColor) towers.instanceColor.needsUpdate=true;
+    scene.add(towers);
+
+    // Sample hervorheben
+    let sample=null;
+    if(bestIdx>=0){
+      const c=cells[bestIdx];
+      sample={x:c.xc,y:c.yc,h:c.h,dx,dy,dA};
+      if(params.showSample){
+        sampleBox = new THREE.Mesh(boxGeo, new THREE.MeshStandardMaterial({color:0xf59e0b,emissive:0x7c4a05,emissiveIntensity:0.5,roughness:0.4,metalness:0.0}));
+        sampleBox.position.set(c.xc, c.h/2, c.yc);
+        sampleBox.scale.set(dx*gap, c.h, dy*gap);
+        scene.add(sampleBox);
+        sampleEdges = new THREE.LineSegments(new THREE.EdgesGeometry(boxGeo), new THREE.LineBasicMaterial({color:0xffffff}));
+        sampleEdges.position.copy(sampleBox.position); sampleEdges.scale.copy(sampleBox.scale);
+        scene.add(sampleEdges);
+      }
+    }
+    return {sum, dx, dy, dA, count:cells.length, sample};
+  }
+
+  // ---------- glatte Fläche ----------
+  let surface=null;
+  function disposeSurface(){ if(surface){scene.remove(surface);surface.geometry.dispose();surface.material.dispose();surface=null;} }
+  function buildSurface(){
+    disposeSurface();
+    if(!params.showSurface) return;
+    const b=regionBounds(), S=60;
+    const dx=(b.xmax-b.xmin)/S, dy=(b.ymax-b.ymin)/S;
+    const idx=new Int32Array((S+1)*(S+1)).fill(-1);
+    const pos=[]; let v=0;
+    for(let i=0;i<=S;i++){ const x=b.xmin+i*dx;
+      for(let j=0;j<=S;j++){ const y=b.ymin+j*dy;
+        if(inRegion(x,y)){ idx[i*(S+1)+j]=v++; pos.push(x,f(x,y),y); }
+      }
+    }
+    const tris=[];
+    for(let i=0;i<S;i++) for(let j=0;j<S;j++){
+      const a=idx[i*(S+1)+j], bb=idx[(i+1)*(S+1)+j], c=idx[i*(S+1)+(j+1)], d=idx[(i+1)*(S+1)+(j+1)];
+      if(a>=0&&bb>=0&&c>=0&&d>=0){ tris.push(a,bb,c, bb,d,c); }
+    }
+    if(tris.length===0) return;
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
+    g.setIndex(tris); g.computeVertexNormals();
+    surface = new THREE.Mesh(g, new THREE.MeshStandardMaterial({
+      color:0x22d3ee, transparent:true, opacity:0.16, side:THREE.DoubleSide,
+      roughness:0.5, metalness:0.0, depthWrite:false}));
+    scene.add(surface);
+  }
+
+  // ---------- UI-Aktualisierung ----------
+  const el = id => document.getElementById(id);
+  function fmt(x,d=3){ return x.toFixed(d); }
+
+  function refreshAll(rebuildRefSurface){
+    if(rebuildRefSurface){ computeReference(); buildStatic(); buildSurface(); }
+    const r = buildTowers();
+    // Konvergenz
+    el('trueVal').textContent = fmt(referenceValue,3);
+    el('sumVal').textContent  = fmt(r.sum,3);
+    const err = Math.abs(r.sum - referenceValue);
+    el('errVal').textContent  = fmt(err,3) + '  (' + (referenceValue? (100*err/referenceValue).toFixed(1):'0') + '%)';
+    el('count').textContent = r.count;
+    el('dA').textContent = fmt(r.dA,3);
+    el('dx').textContent = fmt(r.dx,3);
+    el('dy').textContent = fmt(r.dy,3);
+    // Sample
+    const card = el('sampleCard');
+    if(params.showSample && r.sample){
+      card.style.display='';
+      el('sampleF').textContent = 'dV = f(x,y)·Δx·Δy';
+      el('sx').textContent = fmt(r.sample.x,2);
+      el('sy').textContent = fmt(r.sample.y,2);
+      el('sh').textContent = fmt(r.sample.h,3);
+      el('sv').textContent = fmt(r.sample.h*r.sample.dA,4);
+    } else { card.style.display='none'; }
+  }
+
+  // ---------- Eingaben ----------
+  function bindSeg(segId, key, attr, after){
+    el(segId).addEventListener('click', e=>{
+      const btn = e.target.closest('button'); if(!btn) return;
+      params[key] = btn.dataset[attr];
+      [...el(segId).children].forEach(b=>b.setAttribute('aria-pressed', b===btn));
+      after();
+    });
+  }
+  bindSeg('funcSeg','func','f', ()=>refreshAll(true));
+  bindSeg('regionSeg','region','r', ()=>refreshAll(true));
+
+  el('res').addEventListener('input', e=>{
+    params.n = +e.target.value;
+    el('nLabel').innerHTML = params.n + ' <small>pro Achse</small>';
+    refreshAll(false);
+  });
+  el('showSurface').addEventListener('change', e=>{ params.showSurface=e.target.checked; buildSurface(); });
+  el('showSample').addEventListener('change', e=>{ params.showSample=e.target.checked; refreshAll(false); });
+  el('autoRotate').addEventListener('change', e=>{ params.autoRotate=e.target.checked; });
+  el('autoRotate').checked = params.autoRotate;
+
+  el('collapse').addEventListener('click', ()=>{
+    const p=el('panel'); p.classList.toggle('closed');
+    el('collapse').textContent = p.classList.contains('closed') ? '+' : '–';
+  });
+
+  // Maus / Touch Orbit
+  const cv = renderer.domElement;
+  let dragging=false, lastX=0, lastY=0;
+  function down(x,y){ dragging=true; lastX=x; lastY=y; params.autoRotate=false; el('autoRotate').checked=false; }
+  function move(x,y){ if(!dragging) return;
+    theta -= (x-lastX)*0.006; phi -= (y-lastY)*0.006;
+    phi = Math.max(0.18, Math.min(Math.PI/2 - 0.02, phi));
+    lastX=x; lastY=y; }
+  function up(){ dragging=false; }
+  cv.addEventListener('mousedown', e=>down(e.clientX,e.clientY));
+  window.addEventListener('mousemove', e=>move(e.clientX,e.clientY));
+  window.addEventListener('mouseup', up);
+  cv.addEventListener('touchstart', e=>{ if(e.touches.length===1){down(e.touches[0].clientX,e.touches[0].clientY);} }, {passive:true});
+  cv.addEventListener('touchmove', e=>{ if(e.touches.length===1){move(e.touches[0].clientX,e.touches[0].clientY);} }, {passive:true});
+  cv.addEventListener('touchend', up);
+  cv.addEventListener('wheel', e=>{ e.preventDefault(); radius *= (1 + Math.sign(e.deltaY)*0.08); radius=Math.max(7,Math.min(28,radius)); }, {passive:false});
+
+  // ---------- Resize / Loop ----------
+  function resize(){
+    const w = app.clientWidth  || window.innerWidth;
+    const h = app.clientHeight || window.innerHeight;
+    if(w===0 || h===0) return;
+    renderer.setSize(w, h);            // setzt Puffer UND CSS-Groesse
+    camera.aspect = w/h; camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+  window.addEventListener('load', ()=>{ resize(); });
+  // mehrfach nachziehen, falls der Container erst verzoegert seine Groesse bekommt
+  [0,60,180,400].forEach(t=>setTimeout(resize,t));
+
+  function loop(){
+    requestAnimationFrame(loop);
+    if(params.autoRotate && !dragging) theta += 0.0028;
+    applyCamera();
+    renderer.render(scene,camera);
+  }
+
+  // Start
+  resize();
+  refreshAll(true);
+  loop();
+})();
+</script>
+</body>
+</html>
